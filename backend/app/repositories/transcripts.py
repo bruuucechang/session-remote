@@ -5,7 +5,6 @@
 """
 
 import json
-import re
 import threading
 from pathlib import Path
 
@@ -13,20 +12,6 @@ KEEP = {"user", "assistant", "custom-title"}
 
 _cache: dict[str, dict] = {}
 _lock = threading.Lock()
-
-
-def project_dir(config_dir: str, cwd: str) -> Path:
-    return Path(config_dir) / "projects" / re.sub(r"[^A-Za-z0-9]", "-", cwd)
-
-
-def latest_for(config_dir: str, cwd: str) -> str | None:
-    """沒有 hook 回報過的 session：拿那個資料夾最近改過的紀錄檔充數。"""
-    d = project_dir(config_dir, cwd)
-    try:
-        files = sorted(d.glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)
-    except FileNotFoundError:
-        return None
-    return str(files[0]) if files else None
 
 
 def read(path: str) -> list[dict]:

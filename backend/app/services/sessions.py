@@ -150,8 +150,8 @@ def _record_for(proc: procs.ClaudeProc) -> dict:
 
 
 def _transcript_path(rec: dict, proc: procs.ClaudeProc) -> str | None:
-    return rec.get("transcript_path") or transcripts.latest_for(
-        accounts_repo.norm_dir(proc.config_dir), proc.cwd)
+    # 還沒回報過的 session 不猜紀錄檔：同一個資料夾常有好幾個對話，猜錯會把別人的內容秀出來
+    return rec.get("transcript_path")
 
 
 def _view(s: iterm.ItermSession, proc: procs.ClaudeProc, with_messages: bool = False) -> dict:
@@ -161,16 +161,26 @@ def _view(s: iterm.ItermSession, proc: procs.ClaudeProc, with_messages: bool = F
     cwd = rec.get("cwd") or proc.cwd
     # 還沒有標題時用資料夾名：iTerm2 分頁名在這之前是 shell 的指令（例如「cd (claude)」），沒有意義
     name = built["title"] or os.path.basename(cwd.rstrip("/")) or s.name.strip()
+    status, pending = rec.get("status", UNKNOWN), rec.get("pending")
+    if status == UNKNOWN:
+        # 還沒回報過（例如剛開、卡在「信任這個資料夾嗎」）：看畫面上是不是正在問
+        try:
+            prompt = screen.parse_prompt(iterm.contents(s.id))
+        except iterm.ItermError:
+            prompt = None
+        if prompt:
+            status = WAITING
+            pending = {"kind": "screen", "message": " / ".join(o["label"] for o in prompt["options"])}
     view = {
         "id": s.id,
         "tty": proc.tty,
         "name": name,
         "cwd": cwd,
         "account": _account(proc.config_dir),
-        "status": rec.get("status", UNKNOWN),
+        "status": status,
         "status_since": rec.get("status_since"),
         "activity": rec.get("activity", ""),
-        "pending": rec.get("pending"),
+        "pending": pending,
         "last_text": transcript.last_text(built["messages"])[:300],
         "session_id": rec.get("session_id"),
     }
