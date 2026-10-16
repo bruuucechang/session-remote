@@ -1,0 +1,62 @@
+{
+  "project": "session-remote",
+  "summary": "（一句話說明這個專案在做什麼）",
+  "lanes": [
+    {
+      "id": "ui",
+      "label": "前台"
+    },
+    {
+      "id": "api",
+      "label": "後端"
+    },
+    {
+      "id": "db",
+      "label": "資料"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "web",
+      "lane": "ui",
+      "name": "web",
+      "meta": ":5390",
+      "live": {
+        "port": 5390
+      }
+    },
+    {
+      "id": "api",
+      "lane": "api",
+      "name": "api",
+      "meta": ":5391",
+      "live": {
+        "port": 5391
+      }
+    }
+  ],
+  "edges": [
+    [
+      "web",
+      "api"
+    ]
+  ],
+  "routes": [
+    {
+      "id": "R1",
+      "title": "（把一件常做的事寫成步驟）",
+      "goal": "（做完之後會是什麼狀態）",
+      "steps": [
+        {
+          "title": "（第一步）",
+          "cmd": "",
+          "check": "（怎麼知道這一步成功了）",
+          "trap": "（這一步踩過什麼坑）",
+          "touches": [
+            "web"
+          ]
+        }
+      ]
+    }
+  ]
+}

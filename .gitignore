@@ -1,0 +1,18 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+*.log
+.DS_Store
+.vite/
+__pycache__/
+.venv/
+venv/
+
+# 使用者資料與上傳的檔案不進版控——
+# 它們通常含個資，而且一旦進了 git 歷史就很難乾淨移除。
+uploads/
+data/
+*.sqlite
+*.db
