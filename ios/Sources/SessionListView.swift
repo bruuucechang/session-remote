@@ -29,10 +29,11 @@ struct SessionListView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { showSettings = true } label: {
-                        Image(systemName: "gearshape")
-                            .overlay(alignment: .topTrailing) {
-                                Circle().fill(store.connected ? .green : .red).frame(width: 7, height: 7).offset(x: 4, y: -3)
-                            }
+                        // 燈號放在圖示旁邊而不是疊在角落：iOS 26 的玻璃按鈕會把超出圖示的 overlay 裁掉
+                        HStack(spacing: 5) {
+                            Image(systemName: "gearshape")
+                            Circle().fill(store.connected ? .green : .red).frame(width: 8, height: 8)
+                        }
                     }
                     .accessibilityLabel(store.connected ? "設定（已連線）" : "設定（未連線）")
                 }
