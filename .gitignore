@@ -16,3 +16,8 @@ uploads/
 data/
 *.sqlite
 *.db
+.pytest_cache/
+
+# iOS 編譯產物（xcodebuild -derivedDataPath build/dd）與 XcodeGen 產的專案檔
+ios/build/
+ios/SessionRemote.xcodeproj/

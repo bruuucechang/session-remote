@@ -1,0 +1,7 @@
+fastapi==0.141.1
+uvicorn==0.52.1
+pydantic==2.13.4
+httpx[http2]==0.28.1
+PyJWT[crypto]==2.10.1
+pytest==8.4.2
+qrcode==8.2

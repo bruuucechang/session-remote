@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- session-remote 筆電服務常駐。裝法：tools/install-agent.sh（會把這份複製到 ~/Library/LaunchAgents） -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.bruce.session-remote</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-lc</string>
+    <string>exec "$HOME/Projects/session-remote/run.sh"</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- 正式跑不要 --reload：它會等 SSE 長連線關掉才重載，等於永遠卡住 -->
+    <key>RELOAD</key><string></string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>10</integer>
+  <key>StandardOutPath</key><string>/tmp/session-remote.log</string>
+  <key>StandardErrorPath</key><string>/tmp/session-remote.log</string>
+</dict>
+</plist>

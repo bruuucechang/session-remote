@@ -1,60 +1,66 @@
 {
   "project": "session-remote",
-  "summary": "（一句話說明這個專案在做什麼）",
+  "summary": "iPhone 看與回答這台 Air 上 iTerm2 裡的 Claude Code session（兩帳號合一、推播）",
   "lanes": [
-    {
-      "id": "ui",
-      "label": "前台"
-    },
-    {
-      "id": "api",
-      "label": "後端"
-    },
-    {
-      "id": "db",
-      "label": "資料"
-    }
+    { "id": "ui", "label": "手機" },
+    { "id": "api", "label": "筆電服務" },
+    { "id": "db", "label": "來源" }
   ],
   "nodes": [
-    {
-      "id": "web",
-      "lane": "ui",
-      "name": "web",
-      "meta": ":5390",
-      "live": {
-        "port": 5390
-      }
-    },
-    {
-      "id": "api",
-      "lane": "api",
-      "name": "api",
-      "meta": ":5391",
-      "live": {
-        "port": 5391
-      }
-    }
+    { "id": "ios", "lane": "ui", "name": "Sessions app", "meta": "ios/" },
+    { "id": "api", "lane": "api", "name": "api", "meta": ":5391 launchd", "live": { "port": 5391 } },
+    { "id": "hooks", "lane": "db", "name": "hooks/report.mjs", "meta": "settings.json" },
+    { "id": "iterm", "lane": "db", "name": "iTerm2", "meta": "AppleScript" },
+    { "id": "jsonl", "lane": "db", "name": "對話紀錄", "meta": "projects/*.jsonl" },
+    { "id": "apns", "lane": "db", "name": "APNs", "meta": "推播" }
   ],
   "edges": [
-    [
-      "web",
-      "api"
-    ]
+    ["ios", "api"],
+    ["hooks", "api"],
+    ["api", "iterm"],
+    ["api", "jsonl"],
+    ["api", "apns"]
   ],
   "routes": [
     {
       "id": "R1",
-      "title": "（把一件常做的事寫成步驟）",
-      "goal": "（做完之後會是什麼狀態）",
+      "title": "改了後端之後上線",
+      "goal": "常駐服務跑的是新程式碼",
       "steps": [
         {
-          "title": "（第一步）",
-          "cmd": "",
-          "check": "（怎麼知道這一步成功了）",
-          "trap": "（這一步踩過什麼坑）",
-          "touches": [
-            "web"
-          ]
+          "title": "跑測試",
+          "cmd": "cd backend && .venv/bin/pytest -q",
+          "check": "全過",
+          "trap": "",
+          "touches": ["api"]
+        },
+        {
+          "title": "重啟常駐服務",
+          "cmd": "tools/install-agent.sh",
+          "check": "印出「服務起來了」；curl localhost:5391/health 的 iterm 是 true",
+          "trap": "launchd 底下第一次控制 iTerm2 會跳 macOS 權限框，沒按允許 API 會回 503",
+          "touches": ["api", "iterm"]
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "title": "改了 app 之後裝到手機",
+      "goal": "iPhone 上是新版",
+      "steps": [
+        {
+          "title": "模擬器截圖目視",
+          "cmd": "tools/sim-shot.sh /tmp/x.png <iTerm2 分頁 id>",
+          "check": "截圖裡列表／對話／選項正常",
+          "trap": "要先 xcodebuild 模擬器版；無頭模擬器點不到畫面，設定靠 SR_URL／SR_TOKEN 環境變數帶入（只在 Debug）",
+          "touches": ["ios"]
+        },
+        {
+          "title": "裝到 iPhone",
+          "cmd": "tools/install-ios.sh --wait",
+          "check": "印出「已裝到 iPhone」",
+          "trap": "手機要在同一個網路或接線、解鎖過",
+          "touches": ["ios"]
         }
       ]
     }
