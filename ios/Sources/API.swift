@@ -78,6 +78,10 @@ struct SessionDetail: Codable {
     let pending: Pending?
     let messages: [Message]
     let total_messages: Int
+    /// true：這次回的是最後一段、整串換掉；false：只是 after／before 要的那一段
+    let reset: Bool?
+    /// 回傳的第一則之前還有沒有更早的
+    let has_more: Bool?
     let prompt: Prompt?
     let screen: [String]
 }
@@ -130,9 +134,14 @@ struct API {
         try await send(request("api/sessions"), as: SessionList.self)
     }
 
-    func session(_ id: String) async throws -> SessionDetail {
+    /// after：只要這一則之後的（省流量）；before：這一則之前的一頁（載入更早的）
+    func session(_ id: String, after: String? = nil, before: String? = nil, limit: Int = 150,
+                 screen: Bool = false) async throws -> SessionDetail {
         var comps = URLComponents(url: base.appendingPathComponent("api/sessions/\(id)"), resolvingAgainstBaseURL: false)!
-        comps.queryItems = [URLQueryItem(name: "limit", value: "300")]
+        comps.queryItems = [URLQueryItem(name: "limit", value: String(limit)),
+                            URLQueryItem(name: "screen", value: screen ? "true" : "false")]
+        if let after { comps.queryItems?.append(URLQueryItem(name: "after", value: after)) }
+        if let before { comps.queryItems?.append(URLQueryItem(name: "before", value: before)) }
         var req = request("api/sessions/\(id)")
         req.url = comps.url
         return try await send(req, as: SessionDetail.self)

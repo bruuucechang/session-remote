@@ -34,13 +34,21 @@ def _body(view: dict) -> tuple[str, str]:
     return title, f"[{acct}] {body}"[:400]
 
 
-def _send(view: dict) -> None:
+# 上一次推給手機的圖示紅點數字；沒變就不推
+_last_badge: int | None = None
+
+
+def _send(view: dict, badge: int | None) -> None:
     title, body = _body(view)
-    payload = {
-        "aps": {"alert": {"title": title, "body": body}, "sound": "default", "thread-id": view["id"]},
-        "session": view["id"],
-    }
-    _push(payload, view["id"])
+    aps = {"alert": {"title": title, "body": body}, "sound": "default", "thread-id": view["id"]}
+    if badge is not None:
+        aps["badge"] = badge
+    _push({"aps": aps, "session": view["id"]}, view["id"])
+
+
+def _send_badge(badge: int) -> None:
+    """只改 app 圖示紅點、不跳通知（例如你在電腦上答完了，紅點要跟著少一個）。"""
+    _push({"aps": {"badge": badge}}, "badge")
 
 
 def send_text(title: str, body: str, thread: str = "notify") -> str:
@@ -77,13 +85,18 @@ def session_changed(tty: str) -> None:
         return
 
     def run():
+        global _last_badge
         from . import sessions   # 避免循環 import
         try:
             view = sessions.view_by_tty(tty)
+            badge = sessions.waiting_count()
         except Exception as e:
             log.warning("讀 session 失敗：%s", e)
             return
         if view and view["status"] in ("waiting", "done"):
-            _send(view)
+            _send(view, badge)
+        elif badge != _last_badge:
+            _send_badge(badge)
+        _last_badge = badge
 
     threading.Thread(target=run, daemon=True).start()

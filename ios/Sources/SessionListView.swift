@@ -5,6 +5,8 @@ struct SessionListView: View {
     @State private var path: [String] = []
     @State private var showNew = false
     @State private var showSettings = false
+    /// 待命的 session 常常一堆，預設收起來
+    @AppStorage("idleExpanded") private var idleExpanded = false
 
     /// 依狀態分組，要你處理的排最上面
     private static let order: [(key: String, title: String)] = [
@@ -28,12 +30,36 @@ struct SessionListView: View {
                         .font(.footnote)
                 }
                 ForEach(sections, id: \.title) { sec in
+                    let foldable = sec.title == "待命"
                     Section {
-                        ForEach(sec.items) { s in
-                            NavigationLink(value: s.id) { SessionRow(s: s) }
+                        if !foldable || idleExpanded {
+                            ForEach(sec.items) { s in
+                                NavigationLink(value: s.id) { SessionRow(s: s) }
+                            }
                         }
                     } header: {
-                        Text("\(sec.title) · \(sec.items.count)")
+                        if foldable {
+                            Button {
+                                withAnimation(.snappy) { idleExpanded.toggle() }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text("\(sec.title) · \(sec.items.count)")
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption2.weight(.bold))
+                                        .rotationEffect(.degrees(idleExpanded ? 90 : 0))
+                                    Spacer()
+                                    if !idleExpanded {
+                                        Text(sec.items.map { SessionName($0.name).project }.uniqued().joined(separator: "、"))
+                                            .lineLimit(1).truncationMode(.tail)
+                                            .textCase(nil)
+                                    }
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            Text("\(sec.title) · \(sec.items.count)")
+                        }
                     }
                 }
             }
@@ -106,11 +132,7 @@ struct SessionRow: View {
                     }
                 }
                 HStack(spacing: 6) {
-                    Text(s.account.label ?? s.account.id ?? "")
-                        .font(.caption2.weight(.medium))
-                        .padding(.horizontal, 6).padding(.vertical, 1)
-                        .background(Color(.tertiarySystemFill), in: Capsule())
-                        .foregroundStyle(.secondary)
+                    AccountChip(account: s.account)
                     if let summary = name.summary {
                         Text(summary).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
@@ -150,6 +172,35 @@ struct SessionRow: View {
 
     static func ago(_ d: Date) -> String {
         Date().timeIntervalSince(d) < 60 ? "剛剛" : agoFormatter.localizedString(for: d, relativeTo: Date())
+    }
+}
+
+/// 帳號標籤：只留「·」前面那段，兩個帳號各一個顏色，一眼分得出是誰的額度
+struct AccountChip: View {
+    let account: Account
+
+    var body: some View {
+        let full = account.label ?? account.id ?? ""
+        let short = full.components(separatedBy: " · ").first ?? full
+        Text(short)
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 7).padding(.vertical, 2)
+            .background(color.opacity(0.15), in: Capsule())
+            .foregroundStyle(color)
+    }
+
+    private var color: Color {
+        let palette: [Color] = [.indigo, .teal, .pink, .brown]
+        let key = account.id ?? ""
+        let h = key.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF }
+        return palette[h % palette.count]
+    }
+}
+
+extension Array where Element: Hashable {
+    func uniqued() -> [Element] {
+        var seen = Set<Element>()
+        return filter { seen.insert($0).inserted }
     }
 }
 
