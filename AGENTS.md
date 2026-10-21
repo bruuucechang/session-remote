@@ -31,7 +31,7 @@ cd backend && .venv/bin/pytest    # 後端單元測試
 tools/install-ios.sh [--wait]     # 編譯並裝到 iPhone（--wait：等手機回到網路再裝）
 tools/sim-shot.sh out.png [分頁id] # 無頭模擬器跑 app 並截圖（不開 Simulator 視窗）
 backend/.venv/bin/python tools/pair.py   # 印配對 QR code（手機相機掃）
-ccmove / quad-iterm               # 搬家指令／iTerm2 四宮格（symlink 在 ~/.local/bin）
+ccmove                            # 搬家指令（symlink 在 ~/.local/bin）；iTerm2 四宮格 quad-iterm 已搬到 ~/Projects/termkit
 ```
 
 開發時要直接跑：先 `launchctl bootout gui/$(id -u)/com.bruce.session-remote`，再 `./run.sh`
