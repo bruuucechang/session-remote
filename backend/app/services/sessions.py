@@ -260,6 +260,42 @@ def detail(session_id: str, limit: int = 200, after: str | None = None, before: 
     return v
 
 
+def _entries(session_id: str) -> list[dict] | None:
+    hit = find(session_id)
+    if not hit:
+        return None
+    path = _transcript_path(_record_for(hit[1]), hit[1])
+    return transcripts.read(path) if path else []
+
+
+def tool_detail(session_id: str, message_id: str) -> dict | None:
+    entries = _entries(session_id)
+    return None if entries is None else transcript.tool_detail(entries, message_id)
+
+
+def search(session_id: str, q: str) -> list[dict] | None:
+    entries = _entries(session_id)
+    return None if entries is None else transcript.search(transcript.build(entries)["messages"], q)
+
+
+def recent_dirs() -> list[str]:
+    """開新 session 時排在最前面的資料夾：現在開著的 session 的資料夾＋最近從手機開過的，新的在前。"""
+    seen: dict[str, str] = dict(store.load("recent_dirs"))
+    for v in list_views():
+        seen.setdefault(v["cwd"], "")
+    # 有時間戳的（手機開過的）照時間新到舊，其他照列表順序接在後面
+    return sorted(seen, key=lambda d: seen[d], reverse=True)
+
+
+def remember_dir(directory: str) -> None:
+    with _lock:
+        data = store.load("recent_dirs")
+        data[directory] = _now()
+        # 只留最近 20 個
+        keep = sorted(data.items(), key=lambda kv: kv[1], reverse=True)[:20]
+        store.save("recent_dirs", dict(keep))
+
+
 def waiting_count() -> int:
     return sum(1 for v in list_views() if v["status"] == WAITING)
 

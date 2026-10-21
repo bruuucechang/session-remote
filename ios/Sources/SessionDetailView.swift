@@ -19,6 +19,10 @@ struct SessionDetailView: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var uploading = false
     @State private var confirmClose = false
+    @State private var openTool: Message?
+    @State private var showSearch = false
+    /// 搜尋點了某一則：捲過去（還沒載入的先往前載）
+    @State private var scrollTarget: String?
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -49,7 +53,7 @@ struct SessionDetailView: View {
                     ForEach(ChatItem.group(messages)) { item in
                         switch item {
                         case .message(let m): MessageView(m: m)
-                        case .tools(let ms): ToolGroupView(tools: ms)
+                        case .tools(let ms): ToolGroupView(tools: ms) { openTool = $0 }
                         }
                     }
                     if showScreen, let screen = detail?.screen, !screen.isEmpty {
@@ -81,6 +85,11 @@ struct SessionDetailView: View {
                 }
             }
             #endif
+            .onChange(of: scrollTarget) { _, id in
+                guard let id, let item = ChatItem.group(messages).first(where: { $0.contains(id) }) else { return }
+                withAnimation { proxy.scrollTo(item.id, anchor: .top) }
+                scrollTarget = nil
+            }
             .onChange(of: inputFocused) { _, f in
                 if f { withAnimation { proxy.scrollTo("bottom", anchor: .bottom) } }
             }
@@ -103,6 +112,10 @@ struct SessionDetailView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
+                Button { showSearch = true } label: { Image(systemName: "magnifyingglass") }
+                    .accessibilityLabel("搜尋對話")
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button { showScreen.toggle(); Task { await load() } } label: {
                         Label(showScreen ? "隱藏終端機畫面" : "顯示終端機畫面", systemImage: "terminal")
@@ -115,6 +128,13 @@ struct SessionDetailView: View {
                         Label("關掉這個 session", systemImage: "xmark.circle")
                     }
                 } label: { Image(systemName: "ellipsis") }
+            }
+        }
+        .sheet(item: $openTool) { ToolDetailView(sessionID: sessionID, message: $0) }
+        .sheet(isPresented: $showSearch) {
+            ConversationSearch(sessionID: sessionID) { id in
+                showSearch = false
+                Task { await jump(to: id) }
             }
         }
         .confirmationDialog("結束 Claude 並關掉筆電上的分頁？", isPresented: $confirmClose, titleVisibility: .visible) {
@@ -142,6 +162,7 @@ struct SessionDetailView: View {
             let env = ProcessInfo.processInfo.environment
             if let d = env["SR_DRAFT"], text.isEmpty { text = d.replacingOccurrences(of: "\\n", with: "\n") }
             if env["SR_FOCUS"] == "1" { inputFocused = true }
+            if env["SR_SEARCH"] != nil { showSearch = true }
         }
         #endif
     }
@@ -276,6 +297,21 @@ struct SessionDetailView: View {
         }
     }
 
+    /// 搜尋結果點下去：那一則還沒載入就一頁一頁往前載（最多 20 頁），載到了再捲過去
+    private func jump(to id: String) async {
+        guard let api = store.api else { return }
+        var pages = 0
+        while !messages.contains(where: { $0.id == id }), hasMore, pages < 20, let first = messages.first?.id {
+            guard let d = try? await api.session(sessionID, before: first, limit: Self.pageSize) else { break }
+            let have = Set(messages.map(\.id))
+            messages = d.messages.filter { !have.contains($0.id) } + messages
+            hasMore = d.has_more ?? false
+            pages += 1
+        }
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        scrollTarget = id
+    }
+
     /// 一次抓幾則。模擬器驗收可用 SR_PAGE 調小，才看得到「載入更早的訊息」
     private static var pageSize: Int {
         #if DEBUG
@@ -358,6 +394,12 @@ struct SessionDetailView: View {
             }
             detail = d
             error = nil
+            #if DEBUG
+            // 模擬器驗收：SR_TOOL=<訊息 id>，或 SR_TOOL=Bash 開最後一個那種工具
+            if openTool == nil, let t = ProcessInfo.processInfo.environment["SR_TOOL"] {
+                openTool = messages.last { $0.id == t || ($0.role == "tool" && $0.tool == t) }
+            }
+            #endif
         } catch is CancellationError {
             // 換頁或新的一次更新取消了這次，不是錯誤
         } catch let e as URLError where e.code == .cancelled {
@@ -497,4 +539,76 @@ struct SessionName {
 private struct OptionsHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
+extension ChatItem {
+    func contains(_ messageID: String) -> Bool {
+        switch self {
+        case .message(let m): return m.id == messageID
+        case .tools(let ms): return ms.contains { $0.id == messageID }
+        }
+    }
+}
+
+/// 對話內搜尋：問筆電（整段紀錄都找得到，不只手機已經載入的那段）
+struct ConversationSearch: View {
+    let sessionID: String
+    let onPick: (String) -> Void
+    @EnvironmentObject var store: Store
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+    @State private var hits: [SearchHit] = []
+    @State private var searched = false
+    #if DEBUG
+    init(sessionID: String, onPick: @escaping (String) -> Void) {
+        self.sessionID = sessionID
+        self.onPick = onPick
+        _query = State(initialValue: ProcessInfo.processInfo.environment["SR_SEARCH"] ?? "")
+    }
+    #endif
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(hits) { h in
+                    Button { onPick(h.id) } label: {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(h.role == "user" ? "你" : h.role == "tool" ? (h.tool ?? "工具") : "Claude")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(h.role == "user" ? Color.accentColor : .secondary)
+                            Text(highlight(h.snippet)).font(.callout).lineLimit(3)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .listStyle(.plain)
+            .overlay {
+                if searched && hits.isEmpty { ContentUnavailableView.search(text: query) }
+            }
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "找對話裡的字")
+            .task(id: query) {
+                // 打字停 0.3 秒再問，不要每個字都打一次 API
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                guard !Task.isCancelled, let api = store.api else { return }
+                let q = query.trimmingCharacters(in: .whitespaces)
+                if q.isEmpty { hits = []; searched = false; return }
+                hits = (try? await api.search(sessionID, query: q)) ?? []
+                searched = true
+            }
+            .navigationTitle("搜尋對話")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } } }
+        }
+    }
+
+    private func highlight(_ s: String) -> AttributedString {
+        var a = AttributedString(s)
+        let q = query.trimmingCharacters(in: .whitespaces)
+        if !q.isEmpty, let r = a.range(of: q, options: .caseInsensitive) {
+            a[r].backgroundColor = .yellow.opacity(0.4)
+            a[r].font = .callout.weight(.semibold)
+        }
+        return a
+    }
 }

@@ -149,7 +149,7 @@ def interrupt(session_id: str) -> None:
     sessions.mark_idle(proc.tty)
 
 
-def new_session(directory: str, account_id: str) -> str:
+def new_session(directory: str, account_id: str, prompt: str = "") -> str:
     root = os.path.realpath(config.PROJECTS_ROOT)
     target = os.path.realpath(directory)
     if not (target == root or target.startswith(root + os.sep)) or not os.path.isdir(target):
@@ -164,11 +164,22 @@ def new_session(directory: str, account_id: str) -> str:
         run = "env -u CLAUDE_CONFIG_DIR claude"
     else:
         run = f"CLAUDE_CONFIG_DIR={shlex.quote(cfg)} claude"
-    return iterm.new_tab(f"cd {shlex.quote(target)} && {run}")
+    prompt = prompt.strip()
+    if prompt:
+        # 第一句話當成 claude 的參數：開起來就直接開工（互動模式，之後照常能接著聊）
+        run += " " + shlex.quote(prompt)
+    sid = iterm.new_tab(f"cd {shlex.quote(target)} && {run}")
+    sessions.remember_dir(target)
+    return sid
 
 
 def project_dirs() -> list[str]:
     return projects.list_dirs()
+
+
+def recent_dirs() -> list[str]:
+    root = os.path.realpath(config.PROJECTS_ROOT)
+    return [d for d in sessions.recent_dirs() if d.startswith(root + os.sep) and os.path.isdir(d)][:6]
 
 
 def account_list() -> list[dict]:
