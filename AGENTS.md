@@ -74,6 +74,12 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
 - **iTerm2 第一次啟動卡在「No valid UNIX locale」對話框**（系統語系 en_TW 不是合法 UNIX locale），
   卡著時 AppleScript 全部逾時。已把預設設定檔的「Set locale variables automatically」關掉。
 - **被 Esc 中斷時不會觸發 Stop hook**，`actions.interrupt` 自己把狀態改成待命。
+- **輸入框不要用 `TextField(axis: .vertical)`**：超過 lineLimit 之後不會捲到游標，打多行時新字掉到框外看不到。
+  改用 `ios/Sources/Composer.swift`（TextEditor＋量高度，長到上限就框內捲動，要 `.clipped()`）。
+- **一次問好幾題時，hook 回報的是整張題目表，畫面顯示的是「目前那一題」**：題目與說明要用選項標籤比對出第幾題
+  （`PromptMatch`），不能拿第一題。
+- **複選題**的選項前面有 `[ ]`／`[✔]`、Submit 是沒編號的一行：數字鍵只會勾，送出要移到 Submit 按 Enter（key `submit`）。
+- **回覆裡的換行照送**：文字一次 `write` 進去會被當成貼上、換行保留，送出靠之後另外按的 Enter（2026-10-21 實測）。
 - 信任資料夾這類**沒編號的選單**只能用方向鍵：選項 key 是 `pick:N`，`actions._pick` 換算成 ↑↓＋Enter。
 
 ## 做過但結論是「不做」的
