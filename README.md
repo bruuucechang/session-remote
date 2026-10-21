@@ -18,7 +18,7 @@ iPhone 上看這台 Air 所有 iTerm2 裡的 Claude Code session（兩個帳號�
 
 | 要做的事 | 指令 |
 |---|---|
-| 開一組 iTerm2 四宮格 | `quad-iterm`（預設帳號）／`quad-iterm --account=peter` |
+| 開一組 iTerm2 四宮格 | `quad-iterm`（預設帳號）／`quad-iterm --account=peter`；2026-10-21 起放在 termkit repo（`~/Projects/termkit`） |
 | 把 Terminal 裡的對話搬到 iTerm2 | 先在 Terminal 結束那個 claude，再 `ccmove` 看編號、`ccmove 3` 接回 |
 | 服務狀態 | `curl -s localhost:5391/health`、`tail -f /tmp/session-remote.log` |
 | 重啟服務 | `tools/install-agent.sh` |
