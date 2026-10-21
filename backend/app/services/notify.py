@@ -104,11 +104,32 @@ def session_changed(tty: str) -> None:
         except Exception as e:
             log.warning("讀 session 失敗：%s", e)
             view = None
-        if view and view["status"] in ("waiting", "done"):
+        if view and should_alert(view, settings()):
             _send(view, _waiting_now())
         _summary()
 
     threading.Thread(target=run, daemon=True).start()
+
+
+def settings() -> dict:
+    return {"star_only_push": False, **store.load("settings")}
+
+
+def update_settings(**kw) -> dict:
+    with _devices_lock:
+        data = store.load("settings")
+        data.update({k: v for k, v in kw.items() if v is not None})
+        store.save("settings", data)
+    return settings()
+
+
+def should_alert(view: dict, cfg: dict) -> bool:
+    """跳不跳通知：等你回答一律跳；做完了的話，開了「只推星號」就只有標星的才跳。"""
+    if view["status"] == "waiting":
+        return True
+    if view["status"] == "done":
+        return not cfg.get("star_only_push") or bool(view.get("starred"))
+    return False
 
 
 def summary_changed(force: bool = False) -> None:

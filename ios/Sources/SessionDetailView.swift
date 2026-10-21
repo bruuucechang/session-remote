@@ -99,8 +99,13 @@ struct SessionDetailView: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 VStack(spacing: 1) {
-                    Text(detail.map { SessionName($0.name).project } ?? "")
-                        .font(.subheadline.weight(.semibold)).lineLimit(1)
+                    HStack(spacing: 4) {
+                        if detail?.starred == true {
+                            Image(systemName: "star.fill").font(.caption2).foregroundStyle(.yellow)
+                        }
+                        Text(detail.map { SessionName($0.name).project } ?? "")
+                            .font(.subheadline.weight(.semibold)).lineLimit(1)
+                    }
                     if let d = detail {
                         HStack(spacing: 4) {
                             Circle().fill(Status.color(d.status)).frame(width: 6, height: 6)
@@ -122,6 +127,13 @@ struct SessionDetailView: View {
                     }
                     Button { showKeys.toggle() } label: {
                         Label(showKeys ? "隱藏按鍵列" : "顯示按鍵列", systemImage: "keyboard")
+                    }
+                    Button {
+                        let on = detail?.starred != true
+                        act { try await $0.star(sessionID, on) }
+                    } label: {
+                        Label(detail?.starred == true ? "取消星號" : "標星號",
+                              systemImage: detail?.starred == true ? "star.slash" : "star")
                     }
                     Divider()
                     Button(role: .destructive) { confirmClose = true } label: {

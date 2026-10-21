@@ -8,7 +8,10 @@ struct WaitingEntry: TimelineEntry {
     let sessions: [SessionSummary]
     let error: String?
 
-    var waiting: [SessionSummary] { sessions.filter { $0.status == "waiting" } }
+    /// 標了星號的排前面
+    var waiting: [SessionSummary] {
+        sessions.filter { $0.status == "waiting" }.sorted { ($0.starred == true ? 0 : 1) < ($1.starred == true ? 0 : 1) }
+    }
     var working: [SessionSummary] { sessions.filter { $0.status == "working" } }
 }
 
@@ -90,7 +93,12 @@ struct WaitingWidgetView: View {
                 ForEach(entry.waiting.prefix(3)) { s in
                     Link(destination: URL(string: "sessionremote://open?id=\(s.id)")!) {
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(s.project).font(.caption.weight(.semibold)).lineLimit(1).foregroundStyle(.primary)
+                            HStack(spacing: 3) {
+                                if s.starred == true {
+                                    Image(systemName: "star.fill").font(.system(size: 9)).foregroundStyle(.yellow)
+                                }
+                                Text(s.project).font(.caption.weight(.semibold)).lineLimit(1).foregroundStyle(.primary)
+                            }
                             Text(s.pending?.headline ?? "等你回答").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                         }
                     .tint(.primary)
