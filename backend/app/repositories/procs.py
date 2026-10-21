@@ -1,6 +1,7 @@
 """這台機器上正在跑的 claude 程序：在哪個 tty、哪個設定目錄（帳號）、工作目錄。"""
 
 import re
+import os
 import subprocess
 from dataclasses import dataclass
 
@@ -47,3 +48,13 @@ def list_claude() -> list[ClaudeProc]:
         pid = int(parts[0])
         procs.append(ClaudeProc(pid=pid, tty="/dev/" + parts[1], config_dir=_config_dir(pid), cwd=_cwd(pid)))
     return procs
+
+
+def alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True

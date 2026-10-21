@@ -16,6 +16,8 @@ session 變成「等你回答」或「做完」時推播。規格與「明確不
 | 送字 | iTerm2 AppleScript `write text`（`backend/app/repositories/iterm.py`） | 能送進背景分頁、不搶畫面；Terminal.app 做不到 |
 | 手機 | 原生 SwiftUI（`ios/`，XcodeGen 產 .xcodeproj），開發簽章裝到 iPhone | 使用者有付費開發者帳號 |
 | 推播 | 筆電直接打 APNs（sandbox），金鑰在 `.env` | 沒設金鑰就整段略過 |
+| 小工具＋鎖定畫面即時狀態 | `ios/Widgets/`（另一個 target，WidgetKit＋ActivityKit），畫面本體在 `ios/Shared/WidgetViews.swift` | 跟 app 經 App Group（`group.com.bruuucechang.sessionremote`）共用網址與通行碼，小工具自己打 API；即時狀態由筆電用 liveactivity 推播更新（`notify.activity_payload`） |
+| 額度與 context | 額度讀 agent-quota 寫在本機的 `widget.json`；context 讀 skills 的 `statusline.mjs` 寫的 `~/.claude/state/context/<session>.json` | 都不連網；狀態列沒更新過的 session 沒有 context 數字 |
 
 **沒有資料庫、沒有網頁前端**（scaffold 跑的是 `--no-db --no-frontend`）。「前端」是 `ios/`，
 `ios/Sources/API.swift` 是 app 裡唯一打網路的地方（等同網頁專案的前端 API client）。
@@ -80,6 +82,12 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
   （`PromptMatch`），不能拿第一題。
 - **複選題**的選項前面有 `[ ]`／`[✔]`、Submit 是沒編號的一行：數字鍵只會勾，送出要移到 Submit 按 Enter（key `submit`）。
 - **回覆裡的換行照送**：文字一次 `write` 進去會被當成貼上、換行保留，送出靠之後另外按的 Enter（2026-10-21 實測）。
+- **即時狀態的 content-state 欄位名**（working／waiting／done／headline）在 `notify.activity_payload` 與
+  `ios/Shared/SharedConfig.swift` 各寫一次，改一邊另一邊沒改，推播來的更新會解不開、畫面停在舊的，不報錯。
+- **模擬器截圖要用 `launch --terminate-running-process`**：有了即時狀態之後系統會自己在背景把 app 叫起來，
+  一般的 `simctl launch` 只是把那個舊程序拉到前面，SR_URL 這些環境變數沒帶到，畫面變成「連到筆電」。
+- 小工具與鎖定畫面在無頭模擬器擺不出來：`SIMCTL_CHILD_SR_PREVIEW=widgets tools/sim-shot.sh out.png` 開一頁畫出來看；
+  動態島要 `SIMCTL_CHILD_SR_ACTIVITY=1` 啟動後切到別的 app 再截圖。
 - 信任資料夾這類**沒編號的選單**只能用方向鍵：選項 key 是 `pick:N`，`actions._pick` 換算成 ↑↓＋Enter。
 
 ## 做過但結論是「不做」的

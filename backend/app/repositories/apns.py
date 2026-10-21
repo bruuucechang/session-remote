@@ -45,14 +45,17 @@ class BadToken(Exception):
     """裝置 token 失效（app 刪掉重裝之類），呼叫端應該把它從清單移除。"""
 
 
-def send(device_token: str, env: str, payload: dict, collapse_id: str | None = None) -> None:
+def send(device_token: str, env: str, payload: dict, collapse_id: str | None = None,
+         push_type: str = "alert", priority: int = 10) -> None:
+    """push_type="liveactivity" 是鎖定畫面／動態島的即時狀態，topic 要加 .push-type.liveactivity。"""
     if not configured():
         return
+    topic = config.APNS_BUNDLE_ID + (".push-type.liveactivity" if push_type == "liveactivity" else "")
     headers = {
         "authorization": f"bearer {_token()}",
-        "apns-topic": config.APNS_BUNDLE_ID,
-        "apns-push-type": "alert",
-        "apns-priority": "10",
+        "apns-topic": topic,
+        "apns-push-type": push_type,
+        "apns-priority": str(priority),
     }
     if collapse_id:
         headers["apns-collapse-id"] = collapse_id[:64]

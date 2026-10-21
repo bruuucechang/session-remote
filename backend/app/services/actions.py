@@ -6,11 +6,12 @@
 
 import os
 import shlex
+import signal
 import time
 
 from .. import config
 from ..repositories import accounts as accounts_repo
-from ..repositories import iterm, projects
+from ..repositories import iterm, procs, projects, uploads
 from . import sessions, screen
 
 GAP = 0.35
@@ -110,6 +111,35 @@ def reply(session_id: str, text: str) -> None:
     iterm.write(session_id, text)
     time.sleep(GAP)
     iterm.write_ascii(session_id, 13)
+
+
+def close(session_id: str) -> None:
+    """結束這個 Claude 並關掉分頁：Ctrl-C 兩下讓它自己收尾；3 秒還在就送 SIGTERM，最後關分頁。"""
+    _, proc = _require(session_id)
+    for _ in range(2):
+        iterm.write_ascii(session_id, 3)
+        time.sleep(0.6)
+    deadline = time.time() + 3
+    while procs.alive(proc.pid) and time.time() < deadline:
+        time.sleep(0.2)
+    if procs.alive(proc.pid):
+        os.kill(proc.pid, signal.SIGTERM)
+        time.sleep(0.8)
+    iterm.close(session_id)
+    sessions.forget(proc.tty)
+
+
+MAX_UPLOAD = 15 * 1024 * 1024
+
+
+def upload(session_id: str, data: bytes, ext: str) -> str:
+    _require(session_id)
+    ext = ext.lower().lstrip(".")
+    if ext not in uploads.EXTS:
+        raise BadRequest(f"不收這種檔案：{ext}")
+    if not data or len(data) > MAX_UPLOAD:
+        raise BadRequest("檔案是空的或超過 15 MB")
+    return str(uploads.save(data, ext))
 
 
 def interrupt(session_id: str) -> None:

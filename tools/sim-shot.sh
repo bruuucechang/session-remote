@@ -13,7 +13,7 @@ xcrun simctl install "$UDID" "$DIR/ios/build/dd/Build/Products/Debug-iphonesimul
 xcrun simctl terminate "$UDID" com.bruuucechang.sessionremote 2>/dev/null || true
 TOKEN=$(grep ^SESSION_REMOTE_TOKEN "$DIR/.env" | cut -d= -f2)
 SIMCTL_CHILD_SR_URL="http://127.0.0.1:${API_PORT:-5391}" SIMCTL_CHILD_SR_TOKEN="$TOKEN" SIMCTL_CHILD_SR_OPEN="${2:-}" \
-  xcrun simctl launch "$UDID" com.bruuucechang.sessionremote >/dev/null
+  xcrun simctl launch --terminate-running-process "$UDID" com.bruuucechang.sessionremote >/dev/null
 sleep "${WAIT:-5}"
 xcrun simctl io "$UDID" screenshot "$1" >/dev/null 2>&1
 echo "$1"

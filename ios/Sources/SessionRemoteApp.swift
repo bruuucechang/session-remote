@@ -29,6 +29,18 @@ struct RootView: View {
     @EnvironmentObject var store: Store
 
     var body: some View {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["SR_PREVIEW"] == "widgets" {
+            WidgetPreviewPage()
+        } else {
+            main
+        }
+        #else
+        main
+        #endif
+    }
+
+    @ViewBuilder private var main: some View {
         if store.isConfigured {
             SessionListView()
         } else {
@@ -75,3 +87,38 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         }
     }
 }
+
+#if DEBUG
+/// 模擬器驗收：SR_PREVIEW=widgets 開一頁把小工具與鎖定畫面的樣子畫出來（無頭模擬器擺不了小工具、鎖不了螢幕）
+struct WidgetPreviewPage: View {
+    @EnvironmentObject var store: Store
+
+    var body: some View {
+        let entry = WaitingEntry(date: .now, sessions: store.sessions, error: nil)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("小工具").font(.headline)
+                HStack(spacing: 16) {
+                    tile(WaitingWidgetView(entry: entry, familyOverride: .systemSmall), 170, 170)
+                    tile(WaitingWidgetView(entry: entry, familyOverride: .accessoryCircular), 76, 76)
+                }
+                tile(WaitingWidgetView(entry: entry, familyOverride: .systemMedium), 364, 170)
+                tile(WaitingWidgetView(entry: entry, familyOverride: .accessoryRectangular), 172, 76)
+                Text("鎖定畫面即時狀態").font(.headline)
+                LockScreenView(state: Summary.state(store.sessions))
+                    .padding(14)
+                    .background(Color.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 22))
+            }
+            .padding()
+        }
+        .background(Color(.systemGroupedBackground))
+        .task { await store.refresh() }
+    }
+
+    private func tile<V: View>(_ v: V, _ w: CGFloat, _ h: CGFloat) -> some View {
+        v.padding(14)
+            .frame(width: w, height: h)
+            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 22))
+    }
+}
+#endif

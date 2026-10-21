@@ -108,6 +108,11 @@ def write_seq(session_id: str, seq: str) -> None:
     _osa(_FIND % 'tell s to write text ((ASCII character 27) & (item 2 of argv)) newline NO\n            return ""', session_id, seq)
 
 
+def close(session_id: str) -> None:
+    """關掉這個分頁（裡面只剩 shell 時用；還有程式在跑的話 iTerm2 可能跳確認框）。"""
+    _osa(_FIND % 'close s\n            return ""', session_id)
+
+
 def contents(session_id: str) -> str:
     return _osa(_FIND % "return contents of s", session_id)
 

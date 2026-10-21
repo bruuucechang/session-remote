@@ -1,6 +1,8 @@
 """手機用的 API。全部要帶通行碼（Authorization: Bearer <SESSION_REMOTE_TOKEN>）。"""
 
 import asyncio
+import base64
+import binascii
 import hmac
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
@@ -9,7 +11,7 @@ from pydantic import BaseModel
 
 from .. import config
 from ..repositories import iterm
-from ..services import actions, events, notify, sessions
+from ..services import actions, events, notify, quota, sessions
 
 
 def require_token(authorization: str = Header(default=""), token: str = Query(default="")):
@@ -74,6 +76,45 @@ def key(sid: str, body: Key):
 @router.post("/sessions/{sid}/interrupt")
 def interrupt(sid: str):
     _do(actions.interrupt, sid)
+    return {"ok": True}
+
+
+@router.post("/sessions/{sid}/close")
+def close(sid: str):
+    _do(actions.close, sid)
+    return {"ok": True}
+
+
+class Upload(BaseModel):
+    data: str          # base64
+    ext: str = "jpg"
+
+
+@router.post("/sessions/{sid}/upload")
+def upload(sid: str, body: Upload):
+    try:
+        raw = base64.b64decode(body.data, validate=True)
+    except (binascii.Error, ValueError):
+        raise HTTPException(400, "圖片資料壞了")
+    return {"ok": True, "path": _do(actions.upload, sid, raw, body.ext)}
+
+
+@router.get("/quota")
+def get_quota():
+    return quota.accounts()
+
+
+class Activity(BaseModel):
+    token: str
+    env: str = "sandbox"
+    kind: str = "update"   # update｜start
+
+
+@router.post("/activities")
+def register_activity(body: Activity):
+    if body.kind not in ("update", "start"):
+        raise HTTPException(400, "kind 只能是 update 或 start")
+    notify.register_activity(body.token, body.env, body.kind)
     return {"ok": True}
 
 

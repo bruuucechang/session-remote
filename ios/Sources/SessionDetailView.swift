@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 
 struct SessionDetailView: View {
@@ -15,6 +16,10 @@ struct SessionDetailView: View {
     @State private var showScreen = false
     @FocusState private var inputFocused: Bool
     @State private var optionsHeight: CGFloat = 0
+    @State private var photoItem: PhotosPickerItem?
+    @State private var uploading = false
+    @State private var confirmClose = false
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -90,7 +95,8 @@ struct SessionDetailView: View {
                     if let d = detail {
                         HStack(spacing: 4) {
                             Circle().fill(Status.color(d.status)).frame(width: 6, height: 6)
-                            Text("\(Status.label(d.status)) · \((d.account.label ?? "").components(separatedBy: " · ").first ?? "")")
+                            Text("\(Status.label(d.status)) · \((d.account.label ?? "").components(separatedBy: " · ").first ?? "")"
+                                 + (d.context_pct.map { " · ctx \($0)%" } ?? ""))
                         }
                         .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                     }
@@ -104,11 +110,32 @@ struct SessionDetailView: View {
                     Button { showKeys.toggle() } label: {
                         Label(showKeys ? "隱藏按鍵列" : "顯示按鍵列", systemImage: "keyboard")
                     }
+                    Divider()
+                    Button(role: .destructive) { confirmClose = true } label: {
+                        Label("關掉這個 session", systemImage: "xmark.circle")
+                    }
                 } label: { Image(systemName: "ellipsis") }
             }
         }
+        .confirmationDialog("結束 Claude 並關掉筆電上的分頁？", isPresented: $confirmClose, titleVisibility: .visible) {
+            Button("關掉", role: .destructive) {
+                act {
+                    try await $0.close(sessionID)
+                    dismiss()
+                }
+            }
+        } message: {
+            Text("對話紀錄還在，之後可以用 claude --resume 接回。")
+        }
         // .task(id:) 進畫面時也會跑一次，不用另外掛 .task
         .task(id: store.tick) { await load() }
+        // 草稿跟著 session 存：切去別的 session 再回來字還在
+        .onAppear { if text.isEmpty { text = store.draft(sessionID) } }
+        .onChange(of: text) { _, t in store.setDraft(sessionID, t) }
+        .onChange(of: photoItem) { _, item in
+            guard let item else { return }
+            Task { await sendPhoto(item) }
+        }
         #if DEBUG
         // 模擬器驗收：SR_DRAFT 預先填好輸入框（\n 換行）、SR_FOCUS=1 叫出鍵盤，看長文字會不會跑出框外
         .onAppear {
@@ -149,6 +176,20 @@ struct SessionDetailView: View {
                 }
             }
             if showKeys { keyRow }
+            HStack(alignment: .bottom, spacing: 8) {
+                PhotosPicker(selection: $photoItem, matching: .images) {
+                    ZStack {
+                        Circle().fill(Color(.secondarySystemBackground))
+                        if uploading {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "photo").font(.body.weight(.semibold)).foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(width: 38, height: 38)
+                }
+                .disabled(uploading)
+                .accessibilityLabel("傳照片")
             Composer(
                 text: $text,
                 placeholder: detail?.prompt?.type_key != nil ? "或自己打一個答案…" : "回覆…",
@@ -157,6 +198,7 @@ struct SessionDetailView: View {
             ) {
                 let t = text
                 act { try await $0.reply(sessionID, text: t); text = "" }
+            }
             }
         }
         .padding(.horizontal, 12)
@@ -257,6 +299,33 @@ struct SessionDetailView: View {
         } catch {
             self.error = error.localizedDescription
         }
+    }
+
+    /// 照片縮到長邊 2048、存成 JPEG 傳到筆電，把路徑放進輸入框（自己補一句話再送）
+    private func sendPhoto(_ item: PhotosPickerItem) async {
+        guard let api = store.api else { return }
+        uploading = true
+        defer { uploading = false; photoItem = nil }
+        do {
+            guard let raw = try await item.loadTransferable(type: Data.self), let img = UIImage(data: raw) else {
+                error = "讀不到這張照片"
+                return
+            }
+            let jpeg = Self.shrink(img).jpegData(compressionQuality: 0.8) ?? raw
+            let path = try await api.upload(sessionID, jpeg: jpeg)
+            text += (text.isEmpty || text.hasSuffix("\n") ? "" : "\n") + "（圖片：\(path)）"
+            inputFocused = true
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    private static func shrink(_ img: UIImage, maxSide: CGFloat = 2048) -> UIImage {
+        let side = max(img.size.width, img.size.height)
+        guard side > maxSide else { return img }
+        let scale = maxSide / side
+        let size = CGSize(width: img.size.width * scale, height: img.size.height * scale)
+        return UIGraphicsImageRenderer(size: size).image { _ in img.draw(in: CGRect(origin: .zero, size: size)) }
     }
 
     private func act(_ f: @escaping (API) async throws -> Void) {

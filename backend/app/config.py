@@ -40,6 +40,12 @@ APNS_KEY_ID = os.environ.get("APNS_KEY_ID", "")
 APNS_TEAM_ID = os.environ.get("APNS_TEAM_ID", "CXJ2S2G4JD")
 APNS_BUNDLE_ID = os.environ.get("APNS_BUNDLE_ID", "com.bruuucechang.sessionremote")
 
+# agent-quota 的選單列 app 每幾分鐘寫一次的額度快照（本機檔，不連網）
+QUOTA_FILE = Path(os.environ.get("QUOTA_FILE", str(HOME / "Library/Application Support/agent-quota/widget.json")))
+# skills 的 statusline.mjs 寫的每個 session 的 context 用量（<session_id>.json）
+CONTEXT_DIR = Path(os.environ.get("CONTEXT_DIR", str(HOME / ".claude/state/context")))
+UPLOAD_DIR = DATA_DIR / "uploads"
+
 CORS_ORIGINS = [
     f"http://localhost:{WEB_PORT}",
     f"http://127.0.0.1:{WEB_PORT}",

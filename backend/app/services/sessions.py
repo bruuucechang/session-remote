@@ -16,7 +16,7 @@ import threading
 import time
 from datetime import datetime, timezone
 
-from ..repositories import accounts as accounts_repo
+from ..repositories import contexts, accounts as accounts_repo
 from ..repositories import iterm, procs, store, transcripts
 from . import events, notify, screen, transcript
 
@@ -57,6 +57,7 @@ def apply_hook(event: str, tty: str | None, pid: int | None, config_dir: str, pa
             sessions.pop(tty, None)
             _save()
             events.bump()
+            notify.summary_changed()
             return
         rec = sessions.get(tty)
         sid = payload.get("session_id")
@@ -100,7 +101,8 @@ def apply_hook(event: str, tty: str | None, pid: int | None, config_dir: str, pa
         _save()
         new = rec.get("status")
     events.bump()
-    if new != prev and new in (WAITING, DONE):
+    if new != prev:
+        # 每一次狀態變了都要通知：跳通知只在等你／做完，但紅點數字與鎖定畫面的狀態每一種變化都要跟
         notify.session_changed(tty)
 
 
@@ -111,6 +113,18 @@ def mark_idle(tty: str) -> None:
             _set(rec, IDLE)
             _save()
     events.bump()
+    notify.summary_changed()
+
+
+def forget(tty: str) -> None:
+    """分頁從手機關掉了：不等 SessionEnd hook（被 SIGTERM 的時候不一定有）"""
+    with _lock:
+        _state["sessions"].pop(tty, None)
+        _save()
+    global _scan_cache
+    _scan_cache = (0.0, [])
+    events.bump()
+    notify.summary_changed()
 
 
 # ---------------------------------------------------------------- 列表
@@ -183,6 +197,7 @@ def _view(s: iterm.ItermSession, proc: procs.ClaudeProc, with_messages: bool = F
         "pending": pending,
         "last_text": transcript.last_text(built["messages"])[:300],
         "session_id": rec.get("session_id"),
+        "context_pct": contexts.pct(rec.get("session_id")),
     }
     if with_messages:
         view["messages"] = built["messages"]
@@ -247,6 +262,26 @@ def detail(session_id: str, limit: int = 200, after: str | None = None, before: 
 
 def waiting_count() -> int:
     return sum(1 for v in list_views() if v["status"] == WAITING)
+
+
+def summary() -> dict:
+    """鎖定畫面與動態島要顯示的：幾個在工作、幾個等你、等你的第一個在問什麼。"""
+    views = list_views()
+    waiting = [v for v in views if v["status"] == WAITING]
+    working = [v for v in views if v["status"] == WORKING]
+    if waiting:
+        top = waiting[0]
+        pending = top.get("pending") or {}
+        qs = pending.get("questions") or []
+        ask = qs[0].get("question") if pending.get("kind") == "ask" and qs else None
+        headline = f"{top['name'].split('｜')[0]}：{ask or pending.get('message') or '等你回答'}"
+    elif working:
+        top = working[0]
+        headline = f"{top['name'].split('｜')[0]}：{top.get('activity') or '工作中'}"
+    else:
+        headline = "都做完了"
+    return {"working": len(working), "waiting": len(waiting),
+            "done": sum(1 for v in views if v["status"] == DONE), "headline": headline[:120]}
 
 
 def view_by_tty(tty: str) -> dict | None:
