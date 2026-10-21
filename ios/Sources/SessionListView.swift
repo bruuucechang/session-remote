@@ -13,17 +13,20 @@ struct SessionListView: View {
 
     /// 依狀態分組，要你處理的排最上面
     private static let order: [(key: String, title: String)] = [
-        ("waiting", "等你回答"), ("working", "工作中"), ("done", "做完了"), ("idle", "待命"), ("", "其他"),
+        ("starred", "星號"), ("waiting", "等你回答"), ("working", "工作中"), ("done", "做完了"), ("idle", "待命"), ("", "其他"),
     ]
 
     private var sections: [(title: String, items: [SessionSummary])] {
-        let known = Set(Self.order.map(\.key).filter { !$0.isEmpty })
+        let known = Set(Self.order.map(\.key).filter { !$0.isEmpty && $0 != "starred" })
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         let pool = q.isEmpty ? store.sessions : store.sessions.filter {
             ($0.name + " " + $0.cwd + " " + ($0.account.id ?? "")).lowercased().contains(q)
         }
         return Self.order.compactMap { o in
-            let items = pool.filter { o.key.isEmpty ? !known.contains($0.status) : $0.status == o.key }
+            // 標了星號的不管狀態都放最上面那一區，其他區不再重複出現
+            let items = o.key == "starred"
+                ? pool.filter { $0.starred == true }
+                : pool.filter { $0.starred != true && (o.key.isEmpty ? !known.contains($0.status) : $0.status == o.key) }
             return items.isEmpty ? nil : (o.title, items)
         }
     }
@@ -48,6 +51,13 @@ struct SessionListView: View {
                         if !foldable || idleExpanded {
                             ForEach(sec.items) { s in
                                 NavigationLink(value: s.id) { SessionRow(s: s) }
+                                    .swipeActions(edge: .leading) {
+                                        Button { toggleStar(s) } label: {
+                                            Label(s.starred == true ? "取消星號" : "標星號",
+                                                  systemImage: s.starred == true ? "star.slash" : "star.fill")
+                                        }
+                                        .tint(.yellow)
+                                    }
                                     .swipeActions(edge: .trailing) {
                                         Button { closing = s } label: { Label("關掉", systemImage: "xmark.circle") }
                                             .tint(.red)
@@ -74,6 +84,8 @@ struct SessionListView: View {
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
+                        } else if sec.title == "星號" {
+                            Label("\(sec.title) · \(sec.items.count)", systemImage: "star.fill")
                         } else {
                             Text("\(sec.title) · \(sec.items.count)")
                         }
@@ -152,6 +164,17 @@ struct SessionListView: View {
     }
 }
 
+extension SessionListView {
+    func toggleStar(_ s: SessionSummary) {
+        guard let api = store.api else { return }
+        Task {
+            do { try await api.star(s.id, s.starred != true); closeError = nil }
+            catch { closeError = error.localizedDescription }
+            await store.refresh()
+        }
+    }
+}
+
 struct SessionRow: View {
     let s: SessionSummary
 
@@ -161,6 +184,9 @@ struct SessionRow: View {
             StatusBadge(status: s.status)
             VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    if s.starred == true {
+                        Image(systemName: "star.fill").font(.caption).foregroundStyle(.yellow)
+                    }
                     Text(name.project).font(.body.weight(.semibold)).lineLimit(1)
                     Spacer(minLength: 4)
                     if let since = s.status_since.flatMap(parseDate) {

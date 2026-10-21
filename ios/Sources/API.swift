@@ -45,6 +45,8 @@ struct SessionSummary: Codable, Identifiable, Hashable {
     let session_id: String?
     /// 用了多少 context（%）；那個 session 的狀態列還沒更新過就是 nil
     let context_pct: Int?
+    /// 使用者標了星號（存在筆電，跟著 iTerm2 分頁走）
+    let starred: Bool?
 }
 
 struct Message: Codable, Identifiable, Hashable {
@@ -87,6 +89,7 @@ struct SessionDetail: Codable {
     let prompt: Prompt?
     let screen: [String]
     let context_pct: Int?
+    let starred: Bool?
 }
 
 struct SessionList: Codable {
@@ -246,6 +249,20 @@ struct API {
                           body: ["data": jpeg.base64EncodedString(), "ext": "jpg"])
         req.timeoutInterval = 60
         return try await send(req, as: Saved.self).path
+    }
+
+    func star(_ id: String, _ starred: Bool) async throws {
+        _ = try await send(request("api/sessions/\(id)/star", method: "POST", body: ["starred": starred]), as: OK.self)
+    }
+
+    struct ServerSettings: Codable { let star_only_push: Bool }
+
+    func settings() async throws -> ServerSettings {
+        try await send(request("api/settings"), as: ServerSettings.self)
+    }
+
+    func setStarOnlyPush(_ on: Bool) async throws -> ServerSettings {
+        try await send(request("api/settings", method: "POST", body: ["star_only_push": on]), as: ServerSettings.self)
     }
 
     func quota() async throws -> Quota {

@@ -7,6 +7,8 @@ struct SettingsView: View {
     @State private var url = ""
     @State private var token = ""
     @State private var testResult: String?
+    /// 筆電上的設定（nil＝還沒讀到）
+    @State private var starOnly: Bool?
 
     var body: some View {
         Form {
@@ -35,6 +37,20 @@ struct SettingsView: View {
                 .disabled(url.isEmpty || token.isEmpty)
                 if let r = testResult { Text(r).font(.footnote) }
             }
+            if let on = starOnly {
+                Section {
+                    Toggle("做完只推標星號的", isOn: Binding(
+                        get: { on },
+                        set: { v in
+                            starOnly = v
+                            Task { starOnly = (try? await store.api?.setStarOnlyPush(v))?.star_only_push ?? !v }
+                        }))
+                } header: {
+                    Text("推播")
+                } footer: {
+                    Text("開了之後，沒標星號的 session 做完不跳通知；等你回答的照樣會跳。")
+                }
+            }
             Section("狀態") {
                 LabeledContent("即時更新", value: store.connected ? "連線中" : "未連線")
                 LabeledContent("推播", value: store.pushToken == nil ? "未註冊" : "已註冊")
@@ -49,6 +65,9 @@ struct SettingsView: View {
         .onAppear {
             url = store.serverURL
             token = store.token
+        }
+        .task {
+            if !firstRun { starOnly = (try? await store.api?.settings())?.star_only_push }
         }
     }
 }

@@ -38,3 +38,13 @@ def test_activity_payload_events():
     assert p["aps"]["event"] == "end" and p["aps"]["dismissal-date"] == 1000 + 900
     p, prio = activity_payload(busy, None, 1000.0, start=True)
     assert p["aps"]["event"] == "start" and p["aps"]["attributes-type"] == "SessionsActivityAttributes" and prio == 10
+
+
+def test_should_alert_star_only():
+    from app.services.notify import should_alert
+    on, off = {"star_only_push": True}, {"star_only_push": False}
+    done = {"status": "done", "starred": False}
+    assert should_alert(done, off) and not should_alert(done, on)
+    assert should_alert({"status": "done", "starred": True}, on)
+    assert should_alert({"status": "waiting", "starred": False}, on)   # 等你回答一律跳
+    assert not should_alert({"status": "working", "starred": True}, off)

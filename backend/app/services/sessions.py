@@ -198,6 +198,7 @@ def _view(s: iterm.ItermSession, proc: procs.ClaudeProc, with_messages: bool = F
         "last_text": transcript.last_text(built["messages"])[:300],
         "session_id": rec.get("session_id"),
         "context_pct": contexts.pct(rec.get("session_id")),
+        "starred": s.id in store.load("stars"),
     }
     if with_messages:
         view["messages"] = built["messages"]
@@ -209,7 +210,9 @@ _ORDER = {WAITING: 0, DONE: 1, WORKING: 2, IDLE: 3, UNKNOWN: 4}
 
 def list_views() -> list[dict]:
     with _lock:
-        views = [_view(s, p) for s, p in _scan()]
+        pairs = _scan()
+        views = [_view(s, p) for s, p in pairs]
+        _prune_stars({s.id for s, _ in pairs})
     views.sort(key=lambda v: (_ORDER.get(v["status"], 9), v["name"]))
     return views
 
@@ -294,6 +297,34 @@ def remember_dir(directory: str) -> None:
         # 只留最近 20 個
         keep = sorted(data.items(), key=lambda kv: kv[1], reverse=True)[:20]
         store.save("recent_dirs", dict(keep))
+
+
+# ---------------------------------------------------------------- 星號
+
+
+def set_star(session_id: str, starred: bool) -> None:
+    """星號跟著 iTerm2 分頁走（使用者裁示）：分頁關了星號就跟著消失。"""
+    with _lock:
+        stars = store.load("stars")
+        if starred:
+            stars[session_id] = _now()
+        else:
+            stars.pop(session_id, None)
+        store.save("stars", stars)
+    events.bump()
+
+
+def is_starred(session_id: str) -> bool:
+    return session_id in store.load("stars")
+
+
+def _prune_stars(alive: set[str]) -> None:
+    stars = store.load("stars")
+    gone = [k for k in stars if k not in alive]
+    if gone and alive:   # 掃不到任何分頁（iTerm2 卡住）時不要把星號全清掉
+        for k in gone:
+            stars.pop(k)
+        store.save("stars", stars)
 
 
 def waiting_count() -> int:

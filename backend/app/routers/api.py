@@ -99,6 +99,32 @@ def upload(sid: str, body: Upload):
     return {"ok": True, "path": _do(actions.upload, sid, raw, body.ext)}
 
 
+class Star(BaseModel):
+    starred: bool
+
+
+@router.post("/sessions/{sid}/star")
+def star(sid: str, body: Star):
+    if not sessions.find(sid):
+        raise HTTPException(404, "找不到這個 session（分頁關了？）")
+    sessions.set_star(sid, body.starred)
+    return {"ok": True}
+
+
+class Settings(BaseModel):
+    star_only_push: bool | None = None
+
+
+@router.get("/settings")
+def get_settings():
+    return notify.settings()
+
+
+@router.post("/settings")
+def set_settings(body: Settings):
+    return notify.update_settings(star_only_push=body.star_only_push)
+
+
 @router.get("/quota")
 def get_quota():
     return quota.accounts()
