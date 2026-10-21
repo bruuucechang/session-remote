@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import UserNotifications
+import WidgetKit
 
 /// 全 app 共用的狀態：連線設定、session 列表、即時更新。
 @MainActor
@@ -16,6 +17,11 @@ final class Store: ObservableObject {
     @Published var tick = 0
     /// 點推播通知要打開的 session
     @Published var openSession: String?
+    /// 兩個帳號的額度（列表最上面那一塊）
+    @Published var quota: [QuotaAccount] = []
+    private var quotaFetched = Date.distantPast
+    /// 每個 session 還沒送出的草稿（切去別的 session 再回來字還在）
+    private var drafts: [String: String] = UserDefaults.standard.dictionary(forKey: "drafts") as? [String: String] ?? [:]
 
     var pushToken: String?
     private var eventsTask: Task<Void, Never>?
@@ -33,6 +39,13 @@ final class Store: ObservableObject {
         #endif
     }
 
+    func draft(_ id: String) -> String { drafts[id] ?? "" }
+
+    func setDraft(_ id: String, _ text: String) {
+        if text.isEmpty { drafts[id] = nil } else { drafts[id] = text }
+        UserDefaults.standard.set(drafts, forKey: "drafts")
+    }
+
     var isConfigured: Bool { !token.isEmpty && URL(string: serverURL) != nil }
 
     var api: API? {
@@ -45,15 +58,24 @@ final class Store: ObservableObject {
         self.token = token.trimmingCharacters(in: .whitespaces)
         UserDefaults.standard.set(self.serverURL, forKey: "serverURL")
         Keychain.set("token", self.token)
+        SharedConfig.save(url: self.serverURL, token: self.token)
         restart()
     }
 
     /// sessionremote://setup?url=...&token=...（筆電上 tools/pair.py 印的 QR code）
+    /// sessionremote://open?id=...（小工具、鎖定畫面點進來）
     func handle(url: URL) {
-        guard url.scheme == "sessionremote", url.host == "setup",
-              let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems else { return }
+        guard url.scheme == "sessionremote" else { return }
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         let get = { (n: String) in items.first { $0.name == n }?.value }
-        if let u = get("url"), let t = get("token") { save(serverURL: u, token: t) }
+        switch url.host {
+        case "setup":
+            if let u = get("url"), let t = get("token") { save(serverURL: u, token: t) }
+        case "open":
+            if let id = get("id") { openSession = id }
+        default:
+            break
+        }
     }
 
     func refresh() async {
@@ -71,6 +93,12 @@ final class Store: ObservableObject {
             // app 圖示的紅點＝等你回答的數量（app 不在前景時由筆電推播的 badge 更新）
             let waiting = sessions.filter { $0.status == "waiting" }.count
             try? await UNUserNotificationCenter.current().setBadgeCount(waiting)
+            LiveActivityController.shared.sync(sessions, api: api)
+            WidgetCenter.shared.reloadAllTimelines()
+            if Date().timeIntervalSince(quotaFetched) > 60 {
+                quotaFetched = Date()
+                quota = (try? await api.quota().accounts) ?? quota
+            }
         } catch is CancellationError {
         } catch let e as URLError where e.code == .cancelled {
         } catch {
@@ -80,6 +108,9 @@ final class Store: ObservableObject {
     }
 
     func start() {
+        // 舊版只存在 app 自己的設定裡：補一份到 App Group 給小工具用
+        if isConfigured { SharedConfig.save(url: serverURL, token: token) }
+        if let api { LiveActivityController.shared.attach(api: api) }
         guard eventsTask == nil else { return }
         eventsTask = Task { [weak self] in
             var delay: UInt64 = 1

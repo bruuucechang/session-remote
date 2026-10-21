@@ -43,6 +43,8 @@ struct SessionSummary: Codable, Identifiable, Hashable {
     let pending: Pending?
     let last_text: String
     let session_id: String?
+    /// 用了多少 context（%）；那個 session 的狀態列還沒更新過就是 nil
+    let context_pct: Int?
 }
 
 struct Message: Codable, Identifiable, Hashable {
@@ -84,6 +86,7 @@ struct SessionDetail: Codable {
     let has_more: Bool?
     let prompt: Prompt?
     let screen: [String]
+    let context_pct: Int?
 }
 
 struct SessionList: Codable {
@@ -94,6 +97,22 @@ struct SessionList: Codable {
 struct Options: Codable {
     let projects: [String]
     let accounts: [Account]
+}
+
+struct QuotaAccount: Codable, Hashable, Identifiable {
+    let id: String
+    let label: String
+    let weekly_pct: Int?
+    let weekly_resets: String?
+    let short_pct: Int?
+    let short_resets: String?
+    let stale: Bool
+    let blocked: Bool
+}
+
+struct Quota: Codable {
+    let accounts: [QuotaAccount]
+    let generated_at: String?
 }
 
 struct APIError: LocalizedError {
@@ -157,6 +176,30 @@ struct API {
 
     func interrupt(_ id: String) async throws {
         _ = try await send(request("api/sessions/\(id)/interrupt", method: "POST"), as: OK.self)
+    }
+
+    /// 結束那個 Claude 並關掉 iTerm2 分頁（回不來）
+    func close(_ id: String) async throws {
+        _ = try await send(request("api/sessions/\(id)/close", method: "POST"), as: OK.self)
+    }
+
+    /// 照片傳到筆電，回傳存好的絕對路徑（給 Claude 用 Read 看）
+    func upload(_ id: String, jpeg: Data) async throws -> String {
+        struct Saved: Decodable { let path: String }
+        var req = request("api/sessions/\(id)/upload", method: "POST",
+                          body: ["data": jpeg.base64EncodedString(), "ext": "jpg"])
+        req.timeoutInterval = 60
+        return try await send(req, as: Saved.self).path
+    }
+
+    func quota() async throws -> Quota {
+        try await send(request("api/quota"), as: Quota.self)
+    }
+
+    /// 鎖定畫面即時狀態的推播 token。kind：update（更新正開著的）／start（讓筆電遠端開一個）
+    func registerActivity(token: String, kind: String) async throws {
+        _ = try await send(request("api/activities", method: "POST",
+                                   body: ["token": token, "env": "sandbox", "kind": kind]), as: OK.self)
     }
 
     func options() async throws -> Options {

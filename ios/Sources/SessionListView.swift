@@ -7,6 +7,8 @@ struct SessionListView: View {
     @State private var showSettings = false
     /// 待命的 session 常常一堆，預設收起來
     @AppStorage("idleExpanded") private var idleExpanded = false
+    @State private var closing: SessionSummary?
+    @State private var closeError: String?
 
     /// 依狀態分組，要你處理的排最上面
     private static let order: [(key: String, title: String)] = [
@@ -24,10 +26,15 @@ struct SessionListView: View {
     var body: some View {
         NavigationStack(path: $path) {
             List {
-                if let err = store.error {
+                if let err = store.error ?? closeError {
                     Label(err, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.red)
                         .font(.footnote)
+                }
+                if !store.quota.isEmpty {
+                    Section {
+                        QuotaCard(accounts: store.quota)
+                    }
                 }
                 ForEach(sections, id: \.title) { sec in
                     let foldable = sec.title == "待命"
@@ -35,6 +42,10 @@ struct SessionListView: View {
                         if !foldable || idleExpanded {
                             ForEach(sec.items) { s in
                                 NavigationLink(value: s.id) { SessionRow(s: s) }
+                                    .swipeActions(edge: .trailing) {
+                                        Button { closing = s } label: { Label("關掉", systemImage: "xmark.circle") }
+                                            .tint(.red)
+                                    }
                             }
                         }
                     } header: {
@@ -102,6 +113,21 @@ struct SessionListView: View {
                     }
                 }
             }
+            .confirmationDialog(
+                "關掉「\(closing.map { SessionName($0.name).project } ?? "")」？",
+                isPresented: Binding(get: { closing != nil }, set: { if !$0 { closing = nil } }),
+                titleVisibility: .visible
+            ) {
+                Button("結束 Claude 並關掉分頁", role: .destructive) {
+                    guard let s = closing, let api = store.api else { return }
+                    Task {
+                        do { try await api.close(s.id); closeError = nil } catch { closeError = error.localizedDescription }
+                        await store.refresh()
+                    }
+                }
+            } message: {
+                Text("筆電上那個 iTerm2 分頁會關掉，對話紀錄還在，之後可以用 claude --resume 接回。")
+            }
             .sheet(isPresented: $showSettings) {
                 NavigationStack { SettingsView(firstRun: false) }
             }
@@ -133,6 +159,9 @@ struct SessionRow: View {
                 }
                 HStack(spacing: 6) {
                     AccountChip(account: s.account)
+                    if let ctx = s.context_pct {
+                        ContextChip(pct: ctx)
+                    }
                     if let summary = name.summary {
                         Text(summary).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
@@ -170,8 +199,72 @@ struct SessionRow: View {
         return f
     }()
 
+    /// 「3 小時後」「2 天後」
+    static func until(_ d: Date) -> String {
+        agoFormatter.localizedString(for: d, relativeTo: Date())
+    }
+
     static func ago(_ d: Date) -> String {
         Date().timeIntervalSince(d) < 60 ? "剛剛" : agoFormatter.localizedString(for: d, relativeTo: Date())
+    }
+}
+
+/// 這個 session 用了多少 context：60% 變黃、80% 變紅（跟筆電狀態列同一條線，該寫交接單了）
+struct ContextChip: View {
+    let pct: Int
+
+    var body: some View {
+        Text("ctx \(pct)%")
+            .font(.caption2.weight(.semibold)).monospacedDigit()
+            .foregroundStyle(pct >= 80 ? .red : pct >= 60 ? .orange : .secondary)
+    }
+}
+
+/// 兩個帳號的額度：本週與 5 小時兩條，重置時間寫在旁邊
+struct QuotaCard: View {
+    let accounts: [QuotaAccount]
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ForEach(accounts) { a in
+                HStack(spacing: 10) {
+                    AccountChip(account: Account(id: a.id, label: a.label))
+                        .frame(width: 84, alignment: .leading)
+                    bar("本週", a.weekly_pct, a.weekly_resets)
+                    bar("5 小時", a.short_pct, a.short_resets)
+                }
+                .opacity(a.stale ? 0.5 : 1)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func bar(_ title: String, _ pct: Int?, _ resets: String?) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 3) {
+                Text(title).foregroundStyle(.secondary)
+                Spacer(minLength: 2)
+                Text(pct.map { "\($0)%" } ?? "—").fontWeight(.semibold).monospacedDigit()
+                    .foregroundStyle(color(pct))
+            }
+            .font(.caption2)
+            GeometryReader { g in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color(.tertiarySystemFill))
+                    Capsule().fill(color(pct)).frame(width: g.size.width * CGFloat(min(pct ?? 0, 100)) / 100)
+                }
+            }
+            .frame(height: 5)
+            if let r = resets.flatMap(parseDate) {
+                Text("\(SessionRow.until(r))重置").font(.system(size: 9)).foregroundStyle(.tertiary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func color(_ pct: Int?) -> Color {
+        guard let p = pct else { return .gray }
+        return p >= 90 ? .red : p >= 70 ? .orange : .green
     }
 }
 

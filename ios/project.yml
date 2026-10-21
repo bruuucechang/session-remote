@@ -15,12 +15,16 @@ targets:
   SessionRemote:
     type: application
     platform: iOS
-    sources: [Sources, Resources]
+    sources: [Sources, Resources, Shared]
+    dependencies:
+      - target: SessionWidgets
     entitlements:
       path: SessionRemote.entitlements
       properties:
         # 不上架、只用 Xcode 裝到自己的手機：開發環境的推播
         aps-environment: development
+        # 跟小工具共用連線設定（網址與通行碼）
+        com.apple.security.application-groups: [group.com.bruuucechang.sessionremote]
     info:
       path: Info.plist
       properties:
@@ -28,6 +32,10 @@ targets:
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIBackgroundModes: [remote-notification]
+        # 鎖定畫面與動態島的即時狀態（筆電用推播更新）
+        NSSupportsLiveActivities: true
+        NSSupportsLiveActivitiesFrequentUpdates: true
+        NSPhotoLibraryUsageDescription: 選照片傳給筆電上的 Claude 看
         # 筆電服務走 Tailscale 的 http://100.x.x.x，沒有 TLS
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
@@ -38,4 +46,29 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bruuucechang.sessionremote
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1"
+
+  # 主畫面小工具＋鎖定畫面／動態島的即時狀態，同一個 extension
+  SessionWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Widgets
+      - Shared
+      - Sources/API.swift
+    entitlements:
+      path: SessionWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.bruuucechang.sessionremote]
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: Sessions
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bruuucechang.sessionremote.widgets
         TARGETED_DEVICE_FAMILY: "1"

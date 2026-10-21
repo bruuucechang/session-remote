@@ -41,8 +41,9 @@ def test_full_cycle_and_pushes(isolate):
     assert status() == "done"
     hook("Notification", message="Claude is waiting for your input", notification_type="idle_prompt")
     assert status() == "done"
-    # 推播只在進入 waiting / done 的那一刻
-    assert len(isolate) == 3
+    # 每一次狀態變了都通知 notify（紅點與鎖定畫面要跟）；跳不跳通知由 notify 自己看是不是 waiting／done。
+    # 同一個狀態重複回報（done 之後的 idle_prompt）不算變化
+    assert len(isolate) == 5
 
 
 def test_new_claude_on_same_tty_resets():
