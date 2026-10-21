@@ -17,6 +17,9 @@ import re
 _OPT = re.compile(r"^\s*(❯\s*)?(\d{1,2})\.\s+(.+?)\s*$")
 _FOOTER = ("Enter to select", "Esc to cancel", "Enter to confirm", "Do you want to")
 TYPE_SOMETHING = ("Type something", "Other", "其他")
+# 複選題每個選項前面有核取方塊；Submit 是清單最後一行、沒有編號
+_CHECK = re.compile(r"^\[([ ✔✓xX×])\]\s*(.*)$")
+_SUBMIT = re.compile(r"^\s*(❯\s*)?Submit\s*$")
 
 
 def tail(text: str, n: int = 18) -> list[str]:
@@ -54,7 +57,14 @@ def parse_prompt(text: str) -> dict | None:
         return None
     options = []
     selected = None
+    submit_after = None
     for l in window:
+        sm = _SUBMIT.match(l)
+        if sm and options:
+            submit_after = options[-1]["key"]
+            if sm.group(1):
+                selected = "submit"
+            continue
         m = _OPT.match(l)
         if not m:
             continue
@@ -62,7 +72,12 @@ def parse_prompt(text: str) -> dict | None:
         # 新的一組從 1 開始：只留最後一組
         if num == 1:
             options = []
-        options.append({"key": str(num), "label": m.group(3)})
+            submit_after = None
+        opt = {"key": str(num), "label": m.group(3)}
+        c = _CHECK.match(opt["label"])
+        if c:
+            opt = {"key": opt["key"], "label": c.group(2), "checked": c.group(1) != " "}
+        options.append(opt)
         if m.group(1):
             selected = str(num)
     if not options:
@@ -70,4 +85,9 @@ def parse_prompt(text: str) -> dict | None:
         if not options:
             return None
     other = next((o["key"] for o in options if o["label"].startswith(TYPE_SOMETHING)), None)
-    return {"options": options, "selected": selected, "type_key": other}
+    out = {"options": options, "selected": selected, "type_key": other}
+    if submit_after:
+        # 複選題：數字鍵只會勾／取消，送出要移到 Submit 那一行按 Enter（actions.press("submit")）
+        out["submit_key"] = "submit"
+        out["submit_after"] = submit_after
+    return out

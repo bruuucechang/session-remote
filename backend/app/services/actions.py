@@ -45,6 +45,9 @@ def press(session_id: str, key: str) -> None:
     if key.startswith("pick:"):
         _pick(session_id, key)
         return
+    if key == "submit":
+        _submit(session_id)
+        return
     if key not in KEYS:
         raise BadRequest(f"不認得的按鍵：{key}")
     kind, val = KEYS[key]
@@ -70,10 +73,31 @@ def _pick(session_id: str, key: str) -> None:
     iterm.write_ascii(session_id, 13)
 
 
+def submit_moves(prompt: dict) -> int:
+    """複選題從目前游標往下按幾次才到 Submit（Submit 緊接在 submit_after 那一項後面）。"""
+    if prompt.get("selected") == "submit":
+        return 0
+    keys = [o["key"] for o in prompt["options"]]
+    cur = keys.index(prompt["selected"]) if prompt.get("selected") in keys else 0
+    return keys.index(prompt["submit_after"]) + 1 - cur
+
+
+def _submit(session_id: str) -> None:
+    prompt = screen.parse_prompt(iterm.contents(session_id))
+    if not prompt or not prompt.get("submit_key"):
+        raise BadRequest("畫面上沒有可以送出的複選題")
+    for _ in range(max(0, submit_moves(prompt))):
+        iterm.write_seq(session_id, "[B")
+        time.sleep(0.1)
+    time.sleep(GAP)
+    iterm.write_ascii(session_id, 13)
+
+
 def reply(session_id: str, text: str) -> None:
     """打字送出。如果畫面上正開著選項題，先選「Type something」那一項再打字。"""
     _require(session_id)
-    text = " ".join(text.split("\n")).strip()
+    # 換行照留：文字一口氣送進去會被當成貼上，裡面的換行就是換行；送出靠後面另外按的 Enter（2026-10-21 實測）
+    text = text.replace("\r\n", "\n").replace("\r", "\n").strip()
     if not text:
         raise BadRequest("空白訊息")
     try:

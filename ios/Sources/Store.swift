@@ -9,6 +9,8 @@ final class Store: ObservableObject {
     @Published var sessions: [SessionSummary] = []
     @Published var error: String?
     @Published var connected = false
+    /// 第一次抓列表回來之前是 false：筆電第一次問 iTerm2 要好幾秒，不能把「還沒載入」顯示成「沒有 session」
+    @Published var loaded = false
     /// 每次伺服器說「有東西變了」就 +1，詳細頁盯著它重抓
     @Published var tick = 0
     /// 點推播通知要打開的 session
@@ -58,8 +60,12 @@ final class Store: ObservableObject {
         do {
             sessions = try await api.sessions().sessions
             error = nil
+            loaded = true
+        } catch is CancellationError {
+        } catch let e as URLError where e.code == .cancelled {
         } catch {
             self.error = error.localizedDescription
+            loaded = true
         }
     }
 

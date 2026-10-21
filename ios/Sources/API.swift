@@ -56,12 +56,16 @@ struct Message: Codable, Identifiable, Hashable {
 struct PromptOption: Codable, Hashable {
     let key: String
     let label: String
+    /// 複選題才有：核取方塊目前有沒有勾
+    let checked: Bool?
 }
 
 struct Prompt: Codable, Hashable {
     let options: [PromptOption]
     let selected: String?
     let type_key: String?
+    /// 複選題才有：按這個 key 會移到 Submit 再按 Enter
+    let submit_key: String?
 }
 
 struct SessionDetail: Codable {
