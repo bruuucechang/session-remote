@@ -20,7 +20,7 @@ struct NewSessionView: View {
                     Section("帳號") {
                         Picker("帳號", selection: $account) {
                             ForEach(o.accounts, id: \.id) { a in
-                                Text(a.label ?? a.id ?? "").tag(a.id ?? "")
+                                Text(a.id ?? a.label ?? "").tag(a.id ?? "")
                             }
                         }
                         .pickerStyle(.segmented)
