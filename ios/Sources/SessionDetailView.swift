@@ -4,6 +4,10 @@ struct SessionDetailView: View {
     let sessionID: String
     @EnvironmentObject var store: Store
     @State private var detail: SessionDetail?
+    /// 對話串自己留一份，之後只抓新增的接上去
+    @State private var messages: [Message] = []
+    @State private var hasMore = false
+    @State private var loadingOlder = false
     @State private var error: String?
     @State private var text = ""
     @State private var sending = false
@@ -16,14 +20,28 @@ struct SessionDetailView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
-                    if let d = detail, d.total_messages > d.messages.count {
-                        Text("前面還有 \(d.total_messages - d.messages.count) 則")
-                            .font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity)
+                    Color.clear.frame(height: 1).id("top")
+                    if hasMore {
+                        Button {
+                            Task { await loadOlder(proxy) }
+                        } label: {
+                            HStack(spacing: 6) {
+                                if loadingOlder { ProgressView().controlSize(.mini) }
+                                Text("載入更早的訊息")
+                            }
+                            .font(.caption.weight(.medium))
+                            .padding(.horizontal, 12).padding(.vertical, 6)
+                            .background(Color(.tertiarySystemFill), in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .disabled(loadingOlder)
                     }
                     if detail == nil && error == nil {
                         ProgressView().frame(maxWidth: .infinity).padding(.top, 40)
                     }
-                    ForEach(ChatItem.group(detail?.messages ?? [])) { item in
+                    ForEach(ChatItem.group(messages)) { item in
                         switch item {
                         case .message(let m): MessageView(m: m)
                         case .tools(let ms): ToolGroupView(tools: ms)
@@ -47,9 +65,17 @@ struct SessionDetailView: View {
             // 內容短的時候貼著底部（像聊天 app），不要上面一坨、中間一大片空白
             .defaultScrollAnchor(.bottom)
             .scrollDismissesKeyboard(.interactively)
-            .onChange(of: detail?.messages.last?.id) { _, _ in
+            .onChange(of: messages.last?.id) { _, _ in
                 withAnimation { proxy.scrollTo("bottom", anchor: .bottom) }
             }
+            #if DEBUG
+            // 模擬器驗收：SR_SCROLL=top 載入後捲到最上面（無頭模擬器沒辦法用手滑）
+            .onChange(of: messages.count) { _, _ in
+                if ProcessInfo.processInfo.environment["SR_SCROLL"] == "top" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { proxy.scrollTo("top", anchor: .top) }
+                }
+            }
+            #endif
             .onChange(of: inputFocused) { _, f in
                 if f { withAnimation { proxy.scrollTo("bottom", anchor: .bottom) } }
             }
@@ -64,7 +90,7 @@ struct SessionDetailView: View {
                     if let d = detail {
                         HStack(spacing: 4) {
                             Circle().fill(Status.color(d.status)).frame(width: 6, height: 6)
-                            Text("\(Status.label(d.status)) · \(d.account.label ?? "")")
+                            Text("\(Status.label(d.status)) · \((d.account.label ?? "").components(separatedBy: " · ").first ?? "")")
                         }
                         .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                     }
@@ -72,7 +98,7 @@ struct SessionDetailView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button { showScreen.toggle() } label: {
+                    Button { showScreen.toggle(); Task { await load() } } label: {
                         Label(showScreen ? "隱藏終端機畫面" : "顯示終端機畫面", systemImage: "terminal")
                     }
                     Button { showKeys.toggle() } label: {
@@ -208,6 +234,31 @@ struct SessionDetailView: View {
         }
     }
 
+    /// 一次抓幾則。模擬器驗收可用 SR_PAGE 調小，才看得到「載入更早的訊息」
+    private static var pageSize: Int {
+        #if DEBUG
+        if let v = ProcessInfo.processInfo.environment["SR_PAGE"].flatMap(Int.init) { return v }
+        #endif
+        return 150
+    }
+
+    private func loadOlder(_ proxy: ScrollViewProxy) async {
+        guard let api = store.api, let first = messages.first?.id else { return }
+        loadingOlder = true
+        defer { loadingOlder = false }
+        do {
+            let anchor = ChatItem.group(messages).first?.id
+            let d = try await api.session(sessionID, before: first, limit: Self.pageSize)
+            let have = Set(messages.map(\.id))
+            messages = d.messages.filter { !have.contains($0.id) } + messages
+            hasMore = d.has_more ?? false
+            // 停在原本看的那一則，不要跳到最上面
+            if let anchor { proxy.scrollTo(anchor, anchor: .top) }
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
     private func act(_ f: @escaping (API) async throws -> Void) {
         guard let api = store.api else { return }
         sending = true
@@ -227,7 +278,16 @@ struct SessionDetailView: View {
     private func load() async {
         guard let api = store.api else { return }
         do {
-            detail = try await api.session(sessionID)
+            let d = try await api.session(sessionID, after: messages.last?.id, limit: Self.pageSize, screen: showScreen)
+            if d.reset ?? true {
+                messages = d.messages
+                hasMore = d.has_more ?? false
+            } else {
+                // 兩次更新重疊時可能拿到同一段，用 id 去重
+                let have = Set(messages.map(\.id))
+                messages += d.messages.filter { !have.contains($0.id) }
+            }
+            detail = d
             error = nil
         } catch is CancellationError {
             // 換頁或新的一次更新取消了這次，不是錯誤

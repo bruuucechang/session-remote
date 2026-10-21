@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UserNotifications
 
 /// 全 app 共用的狀態：連線設定、session 列表、即時更新。
 @MainActor
@@ -59,8 +60,17 @@ final class Store: ObservableObject {
         guard let api else { return }
         do {
             sessions = try await api.sessions().sessions
+            #if DEBUG
+            // 模擬器驗收：SR_HIDE=waiting,done 把這幾種藏起來，讓畫面下面的區塊（收起來的待命）擠得進一張截圖
+            if let hide = ProcessInfo.processInfo.environment["SR_HIDE"]?.split(separator: ",").map(String.init) {
+                sessions.removeAll { hide.contains($0.status) }
+            }
+            #endif
             error = nil
             loaded = true
+            // app 圖示的紅點＝等你回答的數量（app 不在前景時由筆電推播的 badge 更新）
+            let waiting = sessions.filter { $0.status == "waiting" }.count
+            try? await UNUserNotificationCenter.current().setBadgeCount(waiting)
         } catch is CancellationError {
         } catch let e as URLError where e.code == .cancelled {
         } catch {

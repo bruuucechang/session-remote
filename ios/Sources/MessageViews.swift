@@ -45,6 +45,13 @@ struct MessageView: View {
                 }
                 .padding(.horizontal, 14).padding(.vertical, 10)
                 .background(Color.accentColor.opacity(0.14), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(alignment: .bottomTrailing) {
+                    if let t = time {
+                        Text(t).font(.caption2).foregroundStyle(.tertiary).monospacedDigit()
+                            .offset(y: 16)
+                    }
+                }
+                .padding(.bottom, time == nil ? 0 : 14)
             }
         case "system":
             Text(m.text)
@@ -56,6 +63,13 @@ struct MessageView: View {
             MarkdownView(source: m.text)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    private var time: String? {
+        guard let ts = m.ts, let d = parseDate(ts) else { return nil }
+        return d.formatted(Calendar.current.isDateInToday(d)
+            ? .dateTime.hour(.twoDigits(amPM: .omitted)).minute()
+            : .dateTime.month(.defaultDigits).day().hour(.twoDigits(amPM: .omitted)).minute())
     }
 
     private var isLong: Bool { m.text.count > 500 || m.text.filter { $0 == "\n" }.count > 11 }
@@ -133,7 +147,7 @@ struct MarkdownView: View {
     @ViewBuilder private func block(_ b: MDBlock) -> some View {
         switch b {
         case .paragraph(let s):
-            Text(inline(s))
+            Text(inline(s)).lineSpacing(3)
         case .heading(let level, let s):
             Text(inline(s))
                 .font(level <= 1 ? .title3.weight(.bold) : level == 2 ? .headline : .subheadline.weight(.semibold))
@@ -141,7 +155,7 @@ struct MarkdownView: View {
         case .bullet(let indent, let marker, let s):
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(marker).foregroundStyle(.secondary).monospacedDigit()
-                Text(inline(s))
+                Text(inline(s)).lineSpacing(3)
             }
             .padding(.leading, CGFloat(indent) * 14)
         case .quote(let s):

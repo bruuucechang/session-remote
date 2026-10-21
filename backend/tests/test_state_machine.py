@@ -56,3 +56,20 @@ def test_session_end_removes():
     hook("SessionStart")
     hook("SessionEnd")
     assert "/dev/ttys009" not in sessions._state["sessions"]
+
+
+def test_page_after_before_and_reset():
+    from app.services.sessions import page
+    ms = [{"id": str(i)} for i in range(10)]
+    p = page(ms, 3)
+    assert [m["id"] for m in p["messages"]] == ["7", "8", "9"] and p["reset"] and p["has_more"]
+    p = page(ms, 3, after="7")
+    assert [m["id"] for m in p["messages"]] == ["8", "9"] and not p["reset"]
+    p = page(ms, 3, after="9")
+    assert p["messages"] == [] and not p["reset"]
+    p = page(ms, 3, after="不見了")          # /clear 換了紀錄檔：整串換掉
+    assert p["reset"] and [m["id"] for m in p["messages"]] == ["7", "8", "9"]
+    p = page(ms, 3, before="7")
+    assert [m["id"] for m in p["messages"]] == ["4", "5", "6"] and p["has_more"]
+    p = page(ms, 3, before="2")
+    assert [m["id"] for m in p["messages"]] == ["0", "1"] and not p["has_more"]

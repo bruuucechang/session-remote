@@ -206,14 +206,36 @@ def find(session_id: str) -> tuple[iterm.ItermSession, procs.ClaudeProc] | None:
     return None
 
 
-def detail(session_id: str, limit: int = 200) -> dict | None:
+def page(messages: list[dict], limit: int, after: str | None = None, before: str | None = None) -> dict:
+    """手機只抓它還沒有的那一段（省行動網路）。
+
+    after：那一則之後的全部；找不到（例如 /clear 換了紀錄檔）就回最後 limit 則並標 reset，手機整串換掉。
+    before：那一則之前的 limit 則（往上滑載入更早的）。
+    has_more：回傳的第一則之前還有沒有。
+    """
+    ids = [m["id"] for m in messages]
+    if after is not None and after in ids:
+        start = ids.index(after) + 1
+        return {"messages": messages[start:], "reset": False, "has_more": False, "partial": True}
+    if before is not None and before in ids:
+        end = ids.index(before)
+        start = max(0, end - limit)
+        return {"messages": messages[start:end], "reset": False, "has_more": start > 0, "partial": True}
+    start = max(0, len(messages) - limit)
+    return {"messages": messages[start:], "reset": True, "has_more": start > 0, "partial": False}
+
+
+def detail(session_id: str, limit: int = 200, after: str | None = None, before: str | None = None) -> dict | None:
     hit = find(session_id)
     if not hit:
         return None
     with _lock:
         v = _view(*hit, with_messages=True)
     v["total_messages"] = len(v["messages"])
-    v["messages"] = v["messages"][-limit:]
+    pg = page(v["messages"], limit, after, before)
+    v["messages"] = pg["messages"]
+    v["reset"] = pg["reset"]
+    v["has_more"] = pg["has_more"]
     try:
         text = iterm.contents(session_id)
         v["prompt"] = screen.parse_prompt(text)
@@ -221,6 +243,10 @@ def detail(session_id: str, limit: int = 200) -> dict | None:
     except iterm.ItermError:
         v["prompt"], v["screen"] = None, []
     return v
+
+
+def waiting_count() -> int:
+    return sum(1 for v in list_views() if v["status"] == WAITING)
 
 
 def view_by_tty(tty: str) -> dict | None:

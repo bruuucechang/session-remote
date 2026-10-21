@@ -41,10 +41,13 @@ def list_sessions():
 
 
 @router.get("/sessions/{sid}")
-def get_session(sid: str, limit: int = 200):
-    v = _do(sessions.detail, sid, limit)
+def get_session(sid: str, limit: int = 200, after: str | None = None, before: str | None = None,
+                screen: bool = True):
+    v = _do(sessions.detail, sid, limit, after, before)
     if v is None:
         raise HTTPException(404, "找不到這個 session（分頁關了？）")
+    if not screen:   # 終端機畫面只有手機打開「顯示終端機畫面」才要，平常省掉這一半流量
+        v["screen"] = []
     return v
 
 
