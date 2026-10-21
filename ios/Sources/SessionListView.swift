@@ -268,14 +268,13 @@ struct QuotaCard: View {
     }
 }
 
-/// 帳號標籤：只留「·」前面那段，兩個帳號各一個顏色，一眼分得出是誰的額度
+/// 帳號標籤：兩個帳號各一個顏色，一眼分得出是誰的額度
 struct AccountChip: View {
     let account: Account
 
     var body: some View {
-        let full = account.label ?? account.id ?? ""
-        let short = full.components(separatedBy: " · ").first ?? full
-        Text(short)
+        // 顯示帳號名（bruce／peter），不顯示方案暱稱（98154／rakucamp）
+        Text(account.id ?? account.label ?? "")
             .font(.caption2.weight(.semibold))
             .padding(.horizontal, 7).padding(.vertical, 2)
             .background(color.opacity(0.15), in: Capsule())

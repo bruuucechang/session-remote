@@ -33,7 +33,7 @@ def register_activity(token: str, env: str, kind: str) -> None:
 
 
 def _body(view: dict) -> tuple[str, str]:
-    acct = (view.get("account") or {}).get("label", "")
+    acct = (view.get("account") or {}).get("id", "")
     title = f"{view['name']}"
     pending = view.get("pending") or {}
     if view["status"] == "waiting":

@@ -95,7 +95,7 @@ struct SessionDetailView: View {
                     if let d = detail {
                         HStack(spacing: 4) {
                             Circle().fill(Status.color(d.status)).frame(width: 6, height: 6)
-                            Text("\(Status.label(d.status)) · \((d.account.label ?? "").components(separatedBy: " · ").first ?? "")"
+                            Text("\(Status.label(d.status)) · \(d.account.id ?? d.account.label ?? "")"
                                  + (d.context_pct.map { " · ctx \($0)%" } ?? ""))
                         }
                         .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
