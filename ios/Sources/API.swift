@@ -96,6 +96,8 @@ struct SessionList: Codable {
 
 struct Options: Codable {
     let projects: [String]
+    /// 最近用過的資料夾（開著的 session＋最近從手機開過的），排在最前面
+    let recent: [String]?
     let accounts: [Account]
 }
 
@@ -118,6 +120,55 @@ struct QuotaAccount: Codable, Hashable, Identifiable {
 struct Quota: Codable {
     let accounts: [QuotaAccount]
     let generated_at: String?
+}
+
+/// 點開一個工具呼叫看到的完整內容
+struct ToolDetail: Codable {
+    let tool: String
+    let summary: String
+    let input: [String: JSONValue]
+    let output: String?
+    let output_truncated: Bool
+    let is_error: Bool
+}
+
+/// 工具的輸入是任意 JSON；手機只需要把字串類的欄位攤開來看
+enum JSONValue: Codable, Hashable {
+    case string(String), number(Double), bool(Bool), other(String)
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if let s = try? c.decode(String.self) { self = .string(s) }
+        else if let b = try? c.decode(Bool.self) { self = .bool(b) }
+        else if let n = try? c.decode(Double.self) { self = .number(n) }
+        else { self = .other("…") }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        switch self {
+        case .string(let s): try c.encode(s)
+        case .number(let n): try c.encode(n)
+        case .bool(let b): try c.encode(b)
+        case .other(let s): try c.encode(s)
+        }
+    }
+
+    var text: String {
+        switch self {
+        case .string(let s): return s
+        case .number(let n): return n == n.rounded() ? String(Int(n)) : String(n)
+        case .bool(let b): return b ? "true" : "false"
+        case .other(let s): return s
+        }
+    }
+}
+
+struct SearchHit: Codable, Identifiable, Hashable {
+    let id: String
+    let role: String
+    let tool: String?
+    let snippet: String
 }
 
 struct APIError: LocalizedError {
@@ -211,8 +262,23 @@ struct API {
         try await send(request("api/options"), as: Options.self)
     }
 
-    func newSession(directory: String, account: String) async throws -> String {
-        try await send(request("api/sessions", method: "POST", body: ["directory": directory, "account": account]), as: Created.self).id
+    /// prompt：第一句話（空的就只開 claude 等你打）
+    func newSession(directory: String, account: String, prompt: String = "") async throws -> String {
+        try await send(request("api/sessions", method: "POST",
+                               body: ["directory": directory, "account": account, "prompt": prompt]), as: Created.self).id
+    }
+
+    func toolDetail(_ id: String, message: String) async throws -> ToolDetail {
+        try await send(request("api/sessions/\(id)/tools/\(message)"), as: ToolDetail.self)
+    }
+
+    func search(_ id: String, query: String) async throws -> [SearchHit] {
+        struct Hits: Decodable { let hits: [SearchHit] }
+        var comps = URLComponents(url: base.appendingPathComponent("api/sessions/\(id)/search"), resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "q", value: query)]
+        var req = request("api/sessions/\(id)/search")
+        req.url = comps.url
+        return try await send(req, as: Hits.self).hits
     }
 
     func registerDevice(token: String) async throws {

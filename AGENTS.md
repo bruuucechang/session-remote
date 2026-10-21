@@ -88,6 +88,8 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
   一般的 `simctl launch` 只是把那個舊程序拉到前面，SR_URL 這些環境變數沒帶到，畫面變成「連到筆電」。
 - 小工具與鎖定畫面在無頭模擬器擺不出來：`SIMCTL_CHILD_SR_PREVIEW=widgets tools/sim-shot.sh out.png` 開一頁畫出來看；
   動態島要 `SIMCTL_CHILD_SR_ACTIVITY=1` 啟動後切到別的 app 再截圖。
+  其他直接打開某一頁的開關：`SR_TOOL=<訊息 id 或工具名>`（工具詳情）、`SR_SEARCH=<字>`（對話搜尋）、
+  `SR_NEW=1`（開新 session）、`SR_PAGE=30`（一頁幾則）、`SR_SCROLL=top`、`SR_DRAFT`／`SR_FOCUS=1`（輸入框）。
 - 信任資料夾這類**沒編號的選單**只能用方向鍵：選項 key 是 `pick:N`，`actions._pick` 換算成 ↑↓＋Enter。
 
 ## 做過但結論是「不做」的

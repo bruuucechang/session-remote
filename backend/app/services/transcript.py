@@ -96,3 +96,76 @@ def last_text(messages: list[dict]) -> str:
         if m["role"] == "user":
             return "你：" + m["text"]
     return ""
+
+
+def _result_text(content) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "\n".join(b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text")
+    return ""
+
+
+MAX_DETAIL = 20_000
+
+
+def tool_detail(entries: list[dict], message_id: str) -> dict | None:
+    """手機點開一個工具呼叫：完整的輸入（指令、路徑、改了什麼）與它的輸出。
+
+    message_id 是 build() 給工具那一行的 id（<uuid>-<第幾塊>）。輸出在後面某一筆 user 紀錄的 tool_result 裡，
+    用 tool_use_id 對回來。太長的截斷，免得手機一次吃幾 MB。
+    """
+    uuid, _, idx = message_id.rpartition("-")
+    if not idx.isdigit():
+        return None
+    use = None
+    for e in entries:
+        if e.get("type") == "assistant" and e.get("uuid") == uuid:
+            content = (e.get("message") or {}).get("content")
+            if isinstance(content, list) and int(idx) < len(content):
+                b = content[int(idx)]
+                if b.get("type") == "tool_use":
+                    use = b
+            break
+    if use is None:
+        return None
+    output, is_error = None, False
+    for e in entries:
+        content = (e.get("message") or {}).get("content")
+        if e.get("type") != "user" or not isinstance(content, list):
+            continue
+        for b in content:
+            if isinstance(b, dict) and b.get("type") == "tool_result" and b.get("tool_use_id") == use.get("id"):
+                output = _result_text(b.get("content"))
+                is_error = bool(b.get("is_error"))
+        if output is not None:
+            break
+    inp = use.get("input") or {}
+    clipped = {k: (v[:MAX_DETAIL] if isinstance(v, str) else v) for k, v in inp.items()}
+    return {
+        "tool": use.get("name", ""),
+        "summary": tool_summary(use.get("name", ""), inp),
+        "input": clipped,
+        "output": output[:MAX_DETAIL] if output is not None else None,
+        "output_truncated": output is not None and len(output) > MAX_DETAIL,
+        "is_error": is_error,
+    }
+
+
+def search(messages: list[dict], q: str, limit: int = 50) -> list[dict]:
+    """整段對話裡找字（不分大小寫），最新的在前；回傳那一則的 id 與命中處前後一小段。"""
+    q = q.strip().lower()
+    if not q:
+        return []
+    hits = []
+    for m in reversed(messages):
+        text = m.get("text", "")
+        i = text.lower().find(q)
+        if i < 0:
+            continue
+        start = max(0, i - 40)
+        hits.append({"id": m["id"], "role": m["role"], "tool": m.get("tool"),
+                     "snippet": ("…" if start else "") + text[start:i + len(q) + 80].replace("\n", " ")})
+        if len(hits) >= limit:
+            break
+    return hits

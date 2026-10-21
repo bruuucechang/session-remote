@@ -78,6 +78,8 @@ struct MessageView: View {
 /// 連續的工具呼叫：一個就一行；多個預設折起來，只看最後一個在做什麼。
 struct ToolGroupView: View {
     let tools: [Message]
+    /// 點某一行：打開完整內容
+    var onOpen: (Message) -> Void = { _ in }
     @State private var expanded = false
 
     var body: some View {
@@ -104,6 +106,11 @@ struct ToolGroupView: View {
     }
 
     private func row(_ m: Message) -> some View {
+        Button { onOpen(m) } label: { rowLabel(m) }
+            .buttonStyle(.plain)
+    }
+
+    private func rowLabel(_ m: Message) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Image(systemName: icon(m.tool ?? ""))
                 .font(.caption2)
@@ -111,7 +118,10 @@ struct ToolGroupView: View {
                 .frame(width: 16)
             Text(m.tool ?? "").font(.caption.weight(.semibold))
             Text(m.text).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
         }
+        .contentShape(Rectangle())
     }
 
     private func icon(_ tool: String) -> String {

@@ -8,6 +8,7 @@ struct SessionListView: View {
     /// 待命的 session 常常一堆，預設收起來
     @AppStorage("idleExpanded") private var idleExpanded = false
     @State private var closing: SessionSummary?
+    @State private var query = ""
     @State private var closeError: String?
 
     /// 依狀態分組，要你處理的排最上面
@@ -17,8 +18,12 @@ struct SessionListView: View {
 
     private var sections: [(title: String, items: [SessionSummary])] {
         let known = Set(Self.order.map(\.key).filter { !$0.isEmpty })
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        let pool = q.isEmpty ? store.sessions : store.sessions.filter {
+            ($0.name + " " + $0.cwd + " " + ($0.account.id ?? "")).lowercased().contains(q)
+        }
         return Self.order.compactMap { o in
-            let items = store.sessions.filter { o.key.isEmpty ? !known.contains($0.status) : $0.status == o.key }
+            let items = pool.filter { o.key.isEmpty ? !known.contains($0.status) : $0.status == o.key }
             return items.isEmpty ? nil : (o.title, items)
         }
     }
@@ -37,7 +42,8 @@ struct SessionListView: View {
                     }
                 }
                 ForEach(sections, id: \.title) { sec in
-                    let foldable = sec.title == "待命"
+                    // 搜尋時不收起，找到的就要看得到
+                    let foldable = sec.title == "待命" && query.isEmpty
                     Section {
                         if !foldable || idleExpanded {
                             ForEach(sec.items) { s in
@@ -83,6 +89,7 @@ struct SessionListView: View {
                                            description: Text("筆電的 iTerm2 裡還沒有跑 Claude Code。按右上角 ＋ 開一個。"))
                 }
             }
+            .searchable(text: $query, prompt: "找專案或帳號")
             .refreshable { await store.refresh() }
             .navigationTitle("Sessions")
             .navigationDestination(for: String.self) { SessionDetailView(sessionID: $0) }
@@ -135,6 +142,9 @@ struct SessionListView: View {
                 if let sid { path = [sid]; store.openSession = nil }
             }
             .task {
+                #if DEBUG
+                if ProcessInfo.processInfo.environment["SR_NEW"] == "1" { showNew = true }
+                #endif
                 await store.refresh()
                 if let sid = store.openSession { path = [sid]; store.openSession = nil }
             }

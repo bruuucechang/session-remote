@@ -121,16 +121,33 @@ def register_activity(body: Activity):
 class NewSession(BaseModel):
     directory: str
     account: str
+    prompt: str = ""
 
 
 @router.post("/sessions")
 def new_session(body: NewSession):
-    return {"ok": True, "id": _do(actions.new_session, body.directory, body.account)}
+    return {"ok": True, "id": _do(actions.new_session, body.directory, body.account, body.prompt)}
+
+
+@router.get("/sessions/{sid}/tools/{mid}")
+def tool_detail(sid: str, mid: str):
+    d = _do(sessions.tool_detail, sid, mid)
+    if d is None:
+        raise HTTPException(404, "找不到這個工具呼叫")
+    return d
+
+
+@router.get("/sessions/{sid}/search")
+def search(sid: str, q: str = ""):
+    hits = _do(sessions.search, sid, q)
+    if hits is None:
+        raise HTTPException(404, "找不到這個 session（分頁關了？）")
+    return {"hits": hits}
 
 
 @router.get("/options")
 def options():
-    return {"projects": actions.project_dirs(), "accounts": actions.account_list()}
+    return {"projects": actions.project_dirs(), "recent": actions.recent_dirs(), "accounts": actions.account_list()}
 
 
 class Device(BaseModel):
