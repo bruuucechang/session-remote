@@ -228,10 +228,20 @@ struct QuotaCard: View {
         VStack(spacing: 10) {
             ForEach(accounts) { a in
                 HStack(spacing: 10) {
-                    AccountChip(account: Account(id: a.id, label: a.label))
-                        .frame(width: 84, alignment: .leading)
-                    bar("本週", a.weekly_pct, a.weekly_resets)
-                    bar("5 小時", a.short_pct, a.short_resets)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(a.vendor == "codex" ? "Codex" : "Claude")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(a.vendor == "codex" ? Color.primary : Color(red: 0.85, green: 0.47, blue: 0.34))
+                        AccountChip(account: Account(id: a.account, label: a.label))
+                    }
+                    .frame(width: 70, alignment: .leading)
+                    if a.weekly_pct == nil && a.short_pct == nil {
+                        Text("沒有資料").font(.caption).foregroundStyle(.tertiary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        bar("本週", a.weekly_pct, a.weekly_resets)
+                        bar("5 小時", a.short_pct, a.short_resets)
+                    }
                 }
                 .opacity(a.stale ? 0.5 : 1)
             }

@@ -100,7 +100,12 @@ struct Options: Codable {
 }
 
 struct QuotaAccount: Codable, Hashable, Identifiable {
+    /// claude-bruce 這種，一個帳號的一家服務一列
     let id: String
+    /// bruce／peter
+    let account: String
+    /// claude／codex
+    let vendor: String
     let label: String
     let weekly_pct: Int?
     let weekly_resets: String?
