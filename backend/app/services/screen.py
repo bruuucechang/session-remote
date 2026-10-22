@@ -15,11 +15,16 @@
 import re
 
 _OPT = re.compile(r"^\s*(❯\s*)?(\d{1,2})\.\s+(.+?)\s*$")
-_FOOTER = ("Enter to select", "Esc to cancel", "Enter to confirm", "Do you want to")
-TYPE_SOMETHING = ("Type something", "Other", "其他")
-# 複選題每個選項前面有核取方塊；Submit 是清單最後一行、沒有編號
+# 計畫模式的核准畫面（Yes／Tell Claude what to change）沒有 Esc to cancel，靠「Would you like to proceed?」認
+_FOOTER = ("Enter to select", "Esc to cancel", "Enter to confirm", "Do you want to", "Would you like to proceed?")
+# 按了會變成可以打字的那一項：選項題的 Type something、計畫核准的「Tell Claude what to change」、
+# 權限提示的「No, and tell Claude what to do differently」
+TYPE_SOMETHING = ("Type something", "Tell Claude what to change", "No, and tell Claude")
+TYPE_EXACT = ("Other", "其他")
+# 複選題每個選項前面有核取方塊；送出是清單最後一行、沒有編號：
+# 只有一題時寫 Submit，一次問好幾題時寫 Next（2026-10-22 實測 v2.1.307）
 _CHECK = re.compile(r"^\[([ ✔✓xX×])\]\s*(.*)$")
-_SUBMIT = re.compile(r"^\s*(❯\s*)?Submit\s*$")
+_SUBMIT = re.compile(r"^\s*(❯\s*)?(Submit|Next)\s*$")
 # 一次問好幾題、答完最後一題後的確認頁（「1. Submit answers / 2. Cancel」）沒有頁尾，
 # 要靠這一行認（2026-10-22 實測 v2.1.306）
 _REVIEW = ("Ready to submit your answers?", "Review your answers")
@@ -32,7 +37,9 @@ def _review(window: list[str]) -> list[dict] | None:
     而且在最後幾行、那一行之後全是編號選項——免得對話裡貼出來的範例被當成確認頁。
     """
     r = next((i for i in range(len(window) - 1, -1, -1) if window[i].strip() == _REVIEW[0]), None)
-    if r is None or r < len(window) - 8 or not all(_OPT.match(l) for l in window[r + 1:]):
+    # 選項底下可能還有一條 session 名稱的分隔線（「──── 專案｜摘要 ─」）
+    after = [l for l in window[r + 1:] if not l.strip().startswith("─")] if r is not None else []
+    if r is None or r < len(window) - 8 or not after or not all(_OPT.match(l) for l in after):
         return None
     h = next((i for i in range(r - 1, -1, -1) if window[i].strip() == _REVIEW[1]), None)
     if h is None:
@@ -88,12 +95,19 @@ def parse_prompt(text: str) -> dict | None:
     lines = [l.rstrip() for l in text.splitlines() if l.strip()]
     window = lines[-30:]
     review = _review(window)
-    if review is None and not any(any(f in l for f in _FOOTER) for l in window[-8:]):
+    # 數最後幾行之前先拿掉分隔線（session 名稱那條、計畫內文的框線），選項多一兩個時頁尾才不會被擠出去
+    bottom = [l for l in window if not l.strip().startswith(("─", "╌", "▔"))][-10:]
+    if review is None and not any(any(f in l for f in _FOOTER) for l in bottom):
         return None
     options = []
     selected = None
     submit_after = None
     for l in window:
+        # 編號清單之後又出現輸入框（「❯」或「❯ 打過的字」；bash 模式是「!」）：前面那串是對話裡的清單，不是選單，丟掉
+        t = l.strip()
+        if (t in ("❯", "!") or t.startswith(("❯ ", "! "))) and not _OPT.match(l) and not _SUBMIT.match(l):
+            options, selected, submit_after = [], None, None
+            continue
         sm = _SUBMIT.match(l)
         if sm and options:
             submit_after = options[-1]["key"]
@@ -119,7 +133,11 @@ def parse_prompt(text: str) -> dict | None:
         options, selected = _unnumbered(window)
         if not options:
             return None
-    other = next((o["key"] for o in options if o["label"].startswith(TYPE_SOMETHING)), None)
+    other = next((o["key"] for o in options
+                  if o["label"].startswith(TYPE_SOMETHING) or o["label"].rstrip(".") in TYPE_EXACT), None)
+    if other is None and submit_after:
+        # 複選題的 Type something 打過字之後標籤就變成那段字，但它一定是 Submit／Next 正上方那一行
+        other = submit_after
     out = {"options": options, "selected": selected, "type_key": other}
     if review is not None:
         out["review"] = review

@@ -74,3 +74,49 @@ def test_page_after_before_and_reset():
     assert [m["id"] for m in p["messages"]] == ["4", "5", "6"] and p["has_more"]
     p = page(ms, 3, before="2")
     assert [m["id"] for m in p["messages"]] == ["0", "1"] and not p["has_more"]
+
+
+def rec():
+    return sessions._state["sessions"].get("/dev/ttys009")
+
+
+def test_session_end_of_other_session_keeps_record():
+    # /clear：新的 SessionStart 先到、舊的 SessionEnd 後到，不能把新的刪掉
+    hook("SessionStart")
+    sessions.apply_hook("SessionEnd", "/dev/ttys009", 123, "", {"session_id": "old"})
+    assert rec() is not None
+
+
+def test_subagent_tool_events_do_not_clear_question():
+    hook("PreToolUse", tool_name="AskUserQuestion", tool_input={"questions": [{"question": "要哪個？"}]})
+    hook("PreToolUse", tool_name="Read", agent_id="sub1")
+    hook("PostToolUse", tool_name="Read", agent_id="sub1")
+    assert status() == "waiting" and rec()["pending"]["kind"] == "ask"
+    hook("PostToolUse", tool_name="AskUserQuestion")
+    assert status() == "working"
+
+
+def test_subagent_permission_is_released_by_its_own_post_tool_use():
+    hook("UserPromptSubmit")
+    hook("Notification", message="Claude needs your permission to use Bash", notification_type="permission_prompt")
+    hook("PostToolUse", tool_name="Bash", agent_id="sub1")
+    assert status() == "working"
+
+
+def test_unrelated_notification_is_not_waiting():
+    hook("Stop")
+    hook("Notification", message="Authentication successful", notification_type="auth_success")
+    assert status() == "done"
+
+
+def test_plan_approval_is_waiting():
+    hook("UserPromptSubmit")
+    hook("PreToolUse", tool_name="ExitPlanMode", tool_input={"plan": "x"})
+    assert status() == "waiting"
+
+
+def test_subagent_events_keep_plan_approval_waiting():
+    hook("UserPromptSubmit")
+    hook("PreToolUse", tool_name="ExitPlanMode", tool_input={"plan": "x"})
+    hook("PostToolUse", tool_name="Read", agent_id="bg1")
+    assert status() == "waiting"

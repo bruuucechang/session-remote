@@ -12,6 +12,8 @@ struct SessionDetailView: View {
     @State private var error: String?
     @State private var text = ""
     @State private var sending = false
+    /// 每次 load 的序號：比較慢回來的舊結果（例如上一題的選項）不准蓋掉新的
+    @State private var loadSeq = 0
     @State private var showKeys = false
     @State private var showScreen = false
     @FocusState private var inputFocused: Bool
@@ -225,8 +227,11 @@ struct SessionDetailView: View {
                 .accessibilityLabel("傳照片")
             Composer(
                 text: $text,
-                placeholder: detail?.prompt?.type_key != nil ? "或自己打一個答案…" : "回覆…",
+                placeholder: detail?.prompt == nil ? "回覆…"
+                    : detail?.prompt?.type_key != nil ? "或自己打一個答案…" : "先按上面的選項",
+                // 選單開著、又沒有可以打字的那一項：打的字會被吃掉，Enter 還會按下游標那一項，所以不給送
                 sending: sending,
+                blocked: detail?.prompt != nil && detail?.prompt?.type_key == nil,
                 focus: $inputFocused
             ) {
                 let t = text
@@ -242,7 +247,12 @@ struct SessionDetailView: View {
     }
 
     @ViewBuilder private func promptView(_ d: SessionDetail, _ p: Prompt) -> some View {
-        let options = p.options.filter { $0.key != p.type_key && !$0.label.hasPrefix("Chat about") }
+        // 只藏「Type something／Other」那一行（靠下面的輸入框打字）；權限提示的「No, and tell Claude…」、
+        // 計畫核准的「Tell Claude what to change」、複選題打過字的那一行都還是按鈕
+        let isTypeRow = { (o: PromptOption) in
+            o.key == p.type_key && (o.label.hasPrefix("Type something") || ["Other", "其他"].contains(o.label.trimmingCharacters(in: CharacterSet(charactersIn: "."))))
+        }
+        let options = p.options.filter { !isTypeRow($0) && !$0.label.hasPrefix("Chat about") }
         let current = PromptMatch(pending: d.pending, prompt: p)
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
@@ -276,7 +286,7 @@ struct SessionDetailView: View {
                             description: current.description(for: o.label),
                             selected: o.key == p.selected,
                             disabled: sending
-                        ) { act { try await $0.key(sessionID, o.key) } }
+                        ) { act { try await $0.key(sessionID, o.key, label: o.label) } }
                     }
                 }
                 // 量出清單的實際高度：放得下就照原本高度，超過 300 才在框內捲動（不留空白）
@@ -395,6 +405,7 @@ struct SessionDetailView: View {
                 try? await Task.sleep(nanoseconds: 600_000_000)
                 await load()
             } catch {
+                await load()
                 self.error = error.localizedDescription
             }
             sending = false
@@ -403,8 +414,11 @@ struct SessionDetailView: View {
 
     private func load() async {
         guard let api = store.api else { return }
+        loadSeq += 1
+        let seq = loadSeq
         do {
             let d = try await api.session(sessionID, after: messages.last?.id, limit: Self.pageSize, screen: showScreen)
+            guard seq == loadSeq else { return }
             if d.reset ?? true {
                 messages = d.messages
                 hasMore = d.has_more ?? false

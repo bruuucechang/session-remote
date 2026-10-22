@@ -38,8 +38,15 @@ def _require(session_id: str):
     return hit
 
 
-def press(session_id: str, key: str) -> None:
+def press(session_id: str, key: str, label: str | None = None) -> None:
+    """label：手機按下去時那顆按鈕的字。給了就先核對畫面上同一個 key 還是不是它，
+    免得手機顯示的是上一題（還沒更新）、數字卻送進下一題。"""
     _require(session_id)
+    if label is not None and (key.isdigit() or key.startswith("pick:")):
+        prompt = screen.parse_prompt(iterm.contents(session_id))
+        now = next((o["label"] for o in (prompt or {}).get("options", []) if o["key"] == key), None)
+        if now != label:
+            raise BadRequest("畫面已經換了，重新整理再選一次")
     if key.isdigit() and len(key) <= 2:
         iterm.write(session_id, key)
         return
@@ -74,22 +81,38 @@ def _pick(session_id: str, key: str) -> None:
     iterm.write_ascii(session_id, 13)
 
 
-def submit_moves(prompt: dict) -> int:
-    """複選題從目前游標往下按幾次才到 Submit（Submit 緊接在 submit_after 那一項後面）。"""
-    if prompt.get("selected") == "submit":
-        return 0
+def _row(prompt: dict, key: str) -> int:
+    """複選題某一項在第幾行（0 起算）。Submit／Next 那行沒有編號、緊接在 submit_after 後面，
+    所以它後面的選項（Chat about this）實際上還要再往下一行。key 給 "submit" 就是 Submit 那行。"""
     keys = [o["key"] for o in prompt["options"]]
-    cur = keys.index(prompt["selected"]) if prompt.get("selected") in keys else 0
-    return keys.index(prompt["submit_after"]) + 1 - cur
+    after = keys.index(prompt["submit_after"])
+    if key == "submit":
+        return after + 1
+    i = keys.index(key)
+    return i + 1 if i > after else i
+
+
+def _cursor(prompt: dict) -> int:
+    sel = prompt.get("selected")
+    return _row(prompt, sel) if sel == "submit" or sel in [o["key"] for o in prompt["options"]] else 0
+
+
+def submit_moves(prompt: dict) -> int:
+    """複選題從目前游標到 Submit 要按幾次方向鍵：正的往下、負的往上（游標在 Chat about this 時）。"""
+    return _row(prompt, "submit") - _cursor(prompt)
+
+
+def _move(session_id: str, n: int) -> None:
+    for _ in range(abs(n)):
+        iterm.write_seq(session_id, "[B" if n > 0 else "[A")
+        time.sleep(0.1)
 
 
 def _submit(session_id: str) -> None:
     prompt = screen.parse_prompt(iterm.contents(session_id))
     if not prompt or not prompt.get("submit_key"):
         raise BadRequest("畫面上沒有可以送出的複選題")
-    for _ in range(max(0, submit_moves(prompt))):
-        iterm.write_seq(session_id, "[B")
-        time.sleep(0.1)
+    _move(session_id, submit_moves(prompt))
     time.sleep(GAP)
     iterm.write_ascii(session_id, 13)
 
@@ -105,7 +128,22 @@ def reply(session_id: str, text: str) -> None:
         prompt = screen.parse_prompt(iterm.contents(session_id))
     except iterm.ItermError:
         prompt = None
-    if prompt and prompt.get("type_key"):
+    if prompt and not prompt.get("type_key"):
+        # 選單開著時打的字會被吃掉，最後那個 Enter 卻會按下游標所在的那一項（權限提示就是「Yes」）
+        raise BadRequest("畫面上正開著選單，先按上面的選項")
+    if prompt and prompt.get("submit_key"):
+        # 複選題：數字鍵只會勾、游標不動，要用方向鍵移到 Type something 那一行才打得進去；
+        # 打字就會自動勾起來，不按 Enter（Enter 會把它取消勾選），送出用「送出選擇」（2026-10-22 實測）
+        _move(session_id, _row(prompt, prompt["type_key"]) - _cursor(prompt))
+        time.sleep(GAP)
+        # 那一行已經打過字（標籤不是 Type something 了）：先刪掉，這次打的字取代它
+        label = next(o["label"] for o in prompt["options"] if o["key"] == prompt["type_key"])
+        if not label.startswith(screen.TYPE_SOMETHING):
+            for _ in label:
+                iterm.write_ascii(session_id, 127)
+        iterm.write(session_id, text)
+        return
+    if prompt:
         iterm.write(session_id, prompt["type_key"])
         time.sleep(GAP)
     iterm.write(session_id, text)
@@ -167,7 +205,8 @@ def new_session(directory: str, account_id: str, prompt: str = "") -> str:
     prompt = prompt.strip()
     if prompt:
         # 第一句話當成 claude 的參數：開起來就直接開工（互動模式，之後照常能接著聊）
-        run += " " + shlex.quote(prompt)
+        # 前面加 --：第一句話以「-」開頭時才不會被當成 claude 的參數
+        run += " -- " + shlex.quote(prompt)
     sid = iterm.new_tab(f"cd {shlex.quote(target)} && {run}")
     sessions.remember_dir(target)
     return sid

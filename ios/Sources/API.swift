@@ -236,8 +236,11 @@ struct API {
         _ = try await send(request("api/sessions/\(id)/reply", method: "POST", body: ["text": text]), as: OK.self)
     }
 
-    func key(_ id: String, _ key: String) async throws {
-        _ = try await send(request("api/sessions/\(id)/key", method: "POST", body: ["key": key]), as: OK.self)
+    /// label：按下去那顆按鈕的字。筆電會核對畫面上同一個 key 還是不是它，不是就拒絕（手機顯示的是舊畫面）
+    func key(_ id: String, _ key: String, label: String? = nil) async throws {
+        var body = ["key": key]
+        if let label { body["label"] = label }
+        _ = try await send(request("api/sessions/\(id)/key", method: "POST", body: body), as: OK.self)
     }
 
     func interrupt(_ id: String) async throws {

@@ -151,3 +151,86 @@ Ready to submit your answers?
     assert screen.parse_prompt(wrapped)["review"] == [
         {"question": "Which color should the new button use?", "answer": "a very long answer that wraps onto next line"}
     ]
+
+
+# ---- 2026-10-22 用真的 claude（v2.1.307，60 欄寬的終端機）擷取的畫面，存在 tests/screens/
+
+def _scr(name):
+    from pathlib import Path
+    return (Path(__file__).parent / "screens" / f"{name}.txt").read_text()
+
+
+def test_multi_question_multiselect_uses_next():
+    # 一次問好幾題時，複選題最後一行是 Next 不是 Submit：以前認不到，手機上沒有送出鈕
+    p = screen.parse_prompt(_scr("multi_next"))
+    assert p["submit_key"] == "submit" and p["submit_after"] == "4"
+    assert [o.get("checked") for o in p["options"]][:3] == [True, False, True]
+    p2 = screen.parse_prompt(_scr("multi_on_next"))
+    assert p2["selected"] == "submit"
+
+
+def test_review_page_with_session_title_line():
+    # session 有了名稱以後，選項底下多一條「──── 雜項｜…」分隔線
+    p = screen.parse_prompt(_scr("review_titled"))
+    assert [o["label"] for o in p["options"]] == ["Submit answers", "Cancel"]
+    assert [r["answer"] for r in p["review"]] == ["綠", "起司, 洋蔥", "大"]
+
+
+def test_plan_approval_prompt():
+    p = screen.parse_prompt(_scr("plan_approve"))
+    assert [o["label"] for o in p["options"]] == [
+        "Yes, and use auto mode", "Yes, manually approve edits", "Tell Claude what to change"]
+    assert p["type_key"] == "3" and p["selected"] == "1"
+
+
+def test_numbered_list_in_chat_followed_by_input_box_is_not_a_prompt():
+    chat = """
+⏺ 兩個做法：
+  1. 直接改
+  2. Other: 先查
+  Do you want to go with 1 or 2?
+────────────────────────────────
+❯
+────────────────────────────────
+  peter@Air │ session-remote
+"""
+    assert screen.parse_prompt(chat) is None
+
+
+def test_old_chat_list_above_real_prompt_is_dropped():
+    p = screen.parse_prompt("⏺ 清單：\n  1. 甲\n  2. 乙\n  3. 丙\n❯ 好，問我\n" + ASK)
+    assert [o["label"] for o in p["options"]][:3] == ["紅", "綠", "藍"]
+
+
+PERMISSION = """
+ Bash command
+   rm -rf build
+   Remove build directory
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don't ask again for rm commands in this project
+   3. No, and tell Claude what to do differently (esc)
+"""
+
+
+def test_permission_prompt_has_type_key():
+    p = screen.parse_prompt(PERMISSION)
+    assert p["type_key"] == "3"
+
+
+def test_other_must_match_exactly():
+    p = screen.parse_prompt(ASK.replace("3. 藍", "3. Other people"))
+    assert p["type_key"] == "4"
+
+
+def test_plan_approval_with_more_options_and_title_line():
+    text = _scr("plan_approve").replace(
+        "     2. Yes, manually approve edits",
+        "     2. Yes, manually approve edits\n     3. Yes, clear context\n     4. Yes, bypass").replace("3. Tell", "5. Tell")
+    p = screen.parse_prompt(text + "\n──────── 雜項｜計畫 ─\n")
+    assert p and p["type_key"] == "5"
+
+
+def test_bash_mode_input_box_also_ends_chat_list():
+    chat = "⏺ 兩個做法：\n  1. 直接改\n  2. 先查\n  Do you want to go with 1 or 2?\n────\n! \n────\n"
+    assert screen.parse_prompt(chat) is None

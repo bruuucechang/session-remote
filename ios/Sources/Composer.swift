@@ -7,6 +7,8 @@ struct Composer: View {
     @Binding var text: String
     let placeholder: String
     let sending: Bool
+    /// 不轉圈、只是現在不給送（例如畫面上開著沒有打字選項的選單）
+    var blocked = false
     var focus: FocusState<Bool>.Binding
     let onSend: () -> Void
 
@@ -15,7 +17,7 @@ struct Composer: View {
     private let maxHeight: CGFloat = 160
 
     private var canSend: Bool {
-        !sending && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !sending && !blocked && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var body: some View {

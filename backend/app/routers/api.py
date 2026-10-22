@@ -65,11 +65,12 @@ def reply(sid: str, body: Reply):
 
 class Key(BaseModel):
     key: str
+    label: str | None = None
 
 
 @router.post("/sessions/{sid}/key")
 def key(sid: str, body: Key):
-    _do(actions.press, sid, body.key)
+    _do(actions.press, sid, body.key, body.label)
     return {"ok": True}
 
 
