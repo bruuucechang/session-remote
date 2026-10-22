@@ -247,17 +247,26 @@ struct SessionDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: d.pending?.kind == "ask" ? "questionmark.bubble.fill" : "hand.raised.fill")
-                Text(current.badge ?? "Claude 在等你")
+                Text(p.review != nil ? "確認答案 · 共 \(p.review!.count) 題" : current.badge ?? "Claude 在等你")
                 Spacer()
             }
             .font(.caption.weight(.semibold))
             .foregroundStyle(.orange)
 
-            Text(current.title ?? d.pending?.headline ?? "Claude 在等你選")
+            Text(p.review != nil ? "要送出這幾題的答案嗎？" : current.title ?? d.pending?.headline ?? "Claude 在等你選")
                 .font(.subheadline.weight(.semibold))
                 // 打字的時候只留兩行，把位置讓給輸入框
                 .lineLimit(inputFocused ? 2 : 8)
                 .fixedSize(horizontal: false, vertical: true)
+
+            if !inputFocused, let review = p.review {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(review, id: \.self) { r in
+                        Text(r.question).font(.caption).foregroundStyle(.secondary)
+                        Text("→ \(r.answer.isEmpty ? "（沒答）" : r.answer)").font(.callout)
+                    }
+                }
+            }
 
             if !inputFocused {
                 let list = VStack(spacing: 6) {

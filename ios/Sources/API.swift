@@ -70,6 +70,13 @@ struct Prompt: Codable, Hashable {
     let type_key: String?
     /// 複選題才有：按這個 key 會移到 Submit 再按 Enter
     let submit_key: String?
+    /// 一次問好幾題、都答完之後的確認頁才有：每題答了什麼
+    let review: [ReviewItem]?
+}
+
+struct ReviewItem: Codable, Hashable {
+    let question: String
+    let answer: String
 }
 
 struct SessionDetail: Codable {
