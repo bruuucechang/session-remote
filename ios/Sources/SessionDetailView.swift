@@ -247,7 +247,12 @@ struct SessionDetailView: View {
     }
 
     @ViewBuilder private func promptView(_ d: SessionDetail, _ p: Prompt) -> some View {
-        let options = p.options.filter { $0.key != p.type_key && !$0.label.hasPrefix("Chat about") }
+        // 只藏「Type something／Other」那一行（靠下面的輸入框打字）；權限提示的「No, and tell Claude…」、
+        // 計畫核准的「Tell Claude what to change」、複選題打過字的那一行都還是按鈕
+        let isTypeRow = { (o: PromptOption) in
+            o.key == p.type_key && (o.label.hasPrefix("Type something") || ["Other", "其他"].contains(o.label.trimmingCharacters(in: CharacterSet(charactersIn: "."))))
+        }
+        let options = p.options.filter { !isTypeRow($0) && !$0.label.hasPrefix("Chat about") }
         let current = PromptMatch(pending: d.pending, prompt: p)
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {

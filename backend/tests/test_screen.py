@@ -221,3 +221,16 @@ def test_permission_prompt_has_type_key():
 def test_other_must_match_exactly():
     p = screen.parse_prompt(ASK.replace("3. 藍", "3. Other people"))
     assert p["type_key"] == "4"
+
+
+def test_plan_approval_with_more_options_and_title_line():
+    text = _scr("plan_approve").replace(
+        "     2. Yes, manually approve edits",
+        "     2. Yes, manually approve edits\n     3. Yes, clear context\n     4. Yes, bypass").replace("3. Tell", "5. Tell")
+    p = screen.parse_prompt(text + "\n──────── 雜項｜計畫 ─\n")
+    assert p and p["type_key"] == "5"
+
+
+def test_bash_mode_input_box_also_ends_chat_list():
+    chat = "⏺ 兩個做法：\n  1. 直接改\n  2. 先查\n  Do you want to go with 1 or 2?\n────\n! \n────\n"
+    assert screen.parse_prompt(chat) is None

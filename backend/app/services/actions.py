@@ -136,6 +136,11 @@ def reply(session_id: str, text: str) -> None:
         # 打字就會自動勾起來，不按 Enter（Enter 會把它取消勾選），送出用「送出選擇」（2026-10-22 實測）
         _move(session_id, _row(prompt, prompt["type_key"]) - _cursor(prompt))
         time.sleep(GAP)
+        # 那一行已經打過字（標籤不是 Type something 了）：先刪掉，這次打的字取代它
+        label = next(o["label"] for o in prompt["options"] if o["key"] == prompt["type_key"])
+        if not label.startswith(screen.TYPE_SOMETHING):
+            for _ in label:
+                iterm.write_ascii(session_id, 127)
         iterm.write(session_id, text)
         return
     if prompt:

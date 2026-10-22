@@ -71,3 +71,10 @@ def test_new_session_prompt_after_double_dash(monkeypatch, tmp_path):
     monkeypatch.setattr(sessions, "remember_dir", lambda d: None)
     actions.new_session(str(tmp_path), "a", "-p")
     assert cmds[0].endswith("claude -- -p")
+
+
+def test_retype_on_multiselect_replaces_previous_text(term):
+    # 第 3 行已經打過「加辣椒」、游標就在那一行：先刪 3 個字再打新的
+    sent = term(_scr("multi_typed"))
+    actions.reply("x", "加胡椒")
+    assert sent == [("ascii", 127)] * 3 + [("write", "加胡椒")]

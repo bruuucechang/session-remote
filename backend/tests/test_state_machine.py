@@ -113,3 +113,10 @@ def test_plan_approval_is_waiting():
     hook("UserPromptSubmit")
     hook("PreToolUse", tool_name="ExitPlanMode", tool_input={"plan": "x"})
     assert status() == "waiting"
+
+
+def test_subagent_events_keep_plan_approval_waiting():
+    hook("UserPromptSubmit")
+    hook("PreToolUse", tool_name="ExitPlanMode", tool_input={"plan": "x"})
+    hook("PostToolUse", tool_name="Read", agent_id="bg1")
+    assert status() == "waiting"

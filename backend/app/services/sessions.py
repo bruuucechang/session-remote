@@ -82,7 +82,7 @@ def apply_hook(event: str, tty: str | None, pid: int | None, config_dir: str, pa
         # subagent 的工具事件帶同一個 session_id、多一個 agent_id：主線程正在問選項題時，它們不能把狀態改回工作中。
         # 權限提示不擋：那可能就是這個 subagent 自己要的權限，核准後它的 PostToolUse 要能把狀態放回來
         sub_waiting = (bool(payload.get("agent_id")) and prev == WAITING
-                       and (rec.get("pending") or {}).get("kind") == "ask")
+                       and ((rec.get("pending") or {}).get("kind") == "ask" or (rec.get("pending") or {}).get("plan")))
 
         if sub_waiting and event in ("PreToolUse", "PostToolUse"):
             pass
@@ -96,7 +96,7 @@ def apply_hook(event: str, tty: str | None, pid: int | None, config_dir: str, pa
                 _set(rec, WAITING, pending={"kind": "ask", "questions": qs})
             elif tool == "ExitPlanMode":
                 # 計畫模式交計畫：一定要你核准才會往下
-                _set(rec, WAITING, pending={"kind": "permission", "message": "計畫寫好了，等你核准"})
+                _set(rec, WAITING, pending={"kind": "permission", "plan": True, "message": "計畫寫好了，等你核准"})
             else:
                 _set(rec, WORKING, activity=f"{tool}：{transcript.tool_summary(tool, payload.get('tool_input'))}")
         elif event == "PostToolUse":

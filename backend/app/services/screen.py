@@ -95,15 +95,17 @@ def parse_prompt(text: str) -> dict | None:
     lines = [l.rstrip() for l in text.splitlines() if l.strip()]
     window = lines[-30:]
     review = _review(window)
-    if review is None and not any(any(f in l for f in _FOOTER) for l in window[-8:]):
+    # 數最後幾行之前先拿掉分隔線（session 名稱那條、計畫內文的框線），選項多一兩個時頁尾才不會被擠出去
+    bottom = [l for l in window if not l.strip().startswith(("─", "╌", "▔"))][-10:]
+    if review is None and not any(any(f in l for f in _FOOTER) for l in bottom):
         return None
     options = []
     selected = None
     submit_after = None
     for l in window:
-        # 編號清單之後又出現輸入框（「❯」或「❯ 打過的字」）：前面那串是對話裡的清單，不是選單，丟掉
+        # 編號清單之後又出現輸入框（「❯」或「❯ 打過的字」；bash 模式是「!」）：前面那串是對話裡的清單，不是選單，丟掉
         t = l.strip()
-        if (t == "❯" or t.startswith("❯ ")) and not _OPT.match(l) and not _SUBMIT.match(l):
+        if (t in ("❯", "!") or t.startswith(("❯ ", "! "))) and not _OPT.match(l) and not _SUBMIT.match(l):
             options, selected, submit_after = [], None, None
             continue
         sm = _SUBMIT.match(l)
@@ -133,6 +135,9 @@ def parse_prompt(text: str) -> dict | None:
             return None
     other = next((o["key"] for o in options
                   if o["label"].startswith(TYPE_SOMETHING) or o["label"].rstrip(".") in TYPE_EXACT), None)
+    if other is None and submit_after:
+        # 複選題的 Type something 打過字之後標籤就變成那段字，但它一定是 Submit／Next 正上方那一行
+        other = submit_after
     out = {"options": options, "selected": selected, "type_key": other}
     if review is not None:
         out["review"] = review
