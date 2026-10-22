@@ -14,6 +14,8 @@ struct SessionDetailView: View {
     @State private var sending = false
     /// 每次 load 的序號：比較慢回來的舊結果（例如上一題的選項）不准蓋掉新的
     @State private var loadSeq = 0
+    /// 整頁高度：題目＋選項的捲動區最多佔一半多一點
+    @State private var screenHeight: CGFloat = 800
     @State private var showKeys = false
     @State private var showScreen = false
     @FocusState private var inputFocused: Bool
@@ -28,6 +30,10 @@ struct SessionDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        page.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { screenHeight = $0 }
+    }
+
+    private var page: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
@@ -263,40 +269,45 @@ struct SessionDetailView: View {
             .font(.caption.weight(.semibold))
             .foregroundStyle(.orange)
 
-            Text(p.review != nil ? "要送出這幾題的答案嗎？" : current.title ?? d.pending?.headline ?? "Claude 在等你選")
-                .font(.subheadline.weight(.semibold))
+            let title = p.review != nil ? "要送出這幾題的答案嗎？" : current.title ?? d.pending?.headline ?? "Claude 在等你選"
+            if inputFocused {
                 // 打字的時候只留兩行，把位置讓給輸入框
-                .lineLimit(inputFocused ? 2 : 8)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if !inputFocused, let review = p.review {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(review, id: \.self) { r in
-                        Text(r.question).font(.caption).foregroundStyle(.secondary)
-                        Text("→ \(r.answer.isEmpty ? "（沒答）" : r.answer)").font(.callout)
+                Text(title).font(.subheadline.weight(.semibold)).lineLimit(2)
+            } else {
+                // 題目、確認摘要、選項放在同一個捲動區：題目再長都完整顯示，
+                // 放得下就照原本高度，超過畫面約一半才在框內捲動（不留空白）
+                let content = VStack(alignment: .leading, spacing: 8) {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                    if let review = p.review {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(review, id: \.self) { r in
+                                Text(r.question).font(.caption).foregroundStyle(.secondary)
+                                Text("→ \(r.answer.isEmpty ? "（沒答）" : r.answer)").font(.callout)
+                            }
+                        }
+                    }
+                    VStack(spacing: 6) {
+                        ForEach(options, id: \.key) { o in
+                            OptionButton(
+                                option: o,
+                                description: current.description(for: o.label),
+                                selected: o.key == p.selected,
+                                disabled: sending
+                            ) { act { try await $0.key(sessionID, o.key, label: o.label) } }
+                        }
                     }
                 }
-            }
-
-            if !inputFocused {
-                let list = VStack(spacing: 6) {
-                    ForEach(options, id: \.key) { o in
-                        OptionButton(
-                            option: o,
-                            description: current.description(for: o.label),
-                            selected: o.key == p.selected,
-                            disabled: sending
-                        ) { act { try await $0.key(sessionID, o.key, label: o.label) } }
-                    }
-                }
-                // 量出清單的實際高度：放得下就照原本高度，超過 300 才在框內捲動（不留空白）
                 ScrollView {
-                    list.background(GeometryReader { g in
+                    content.background(GeometryReader { g in
                         Color.clear.preference(key: OptionsHeightKey.self, value: g.size.height)
                     })
                 }
                 .scrollBounceBehavior(.basedOnSize)
-                .frame(height: min(max(optionsHeight, 1), 300))
+                .scrollIndicators(.visible)
+                .frame(height: min(max(optionsHeight, 1), max(screenHeight * 0.55, 300)))
                 .onPreferenceChange(OptionsHeightKey.self) { optionsHeight = $0 }
 
                 if let submit = p.submit_key {
