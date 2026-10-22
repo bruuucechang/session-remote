@@ -26,19 +26,33 @@ _REVIEW = ("Ready to submit your answers?", "Review your answers")
 
 
 def _review(window: list[str]) -> list[dict] | None:
-    """確認頁上列出的「● 題目／→ 答案」；不是確認頁就回 None。"""
-    if not any(l.strip() == _REVIEW[0] for l in window[-8:]):
+    """確認頁上列出的「● 題目／→ 答案」；不是確認頁就回 None。
+
+    要三個條件都成立才算：有「Review your answers」、它後面有「Ready to submit your answers?」
+    而且在最後幾行、那一行之後全是編號選項——免得對話裡貼出來的範例被當成確認頁。
+    """
+    r = next((i for i in range(len(window) - 1, -1, -1) if window[i].strip() == _REVIEW[0]), None)
+    if r is None or r < len(window) - 8 or not all(_OPT.match(l) for l in window[r + 1:]):
+        return None
+    h = next((i for i in range(r - 1, -1, -1) if window[i].strip() == _REVIEW[1]), None)
+    if h is None:
         return None
     items: list[dict] = []
-    for l in window:
+    in_answer = False
+    for l in window[h + 1:r]:
         t = l.strip()
         if t.startswith("● "):
             items.append({"question": t[2:].strip(), "answer": ""})
+            in_answer = False
         elif t.startswith("→ ") and items:
             items[-1]["answer"] = t[2:].strip()
-        elif items and not items[-1]["answer"] and t and t not in _REVIEW and not _OPT.match(l):
-            # 題目太長被換行：接回上一行
-            items[-1]["question"] += t
+            in_answer = True
+        elif items and t:
+            # 太長被換行：接回上一段（英數字之間補空白）
+            field = "answer" if in_answer else "question"
+            prev = items[-1][field]
+            sep = " " if prev[-1:].isascii() and prev[-1:].isalnum() and t[:1].isascii() and t[:1].isalnum() else ""
+            items[-1][field] = prev + sep + t
     return items
 
 

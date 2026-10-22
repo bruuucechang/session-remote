@@ -119,3 +119,35 @@ def test_review_page_is_a_prompt():
 
 def test_review_only_on_review_page():
     assert "review" not in screen.parse_prompt(ASK)
+
+
+def test_review_text_in_chat_is_not_a_prompt():
+    idle = """
+⏺ 確認頁長這樣：
+  Ready to submit your answers?
+  1. Submit answers
+  2. Cancel
+────────────────────────────────
+❯
+────────────────────────────────
+  ? for shortcuts
+"""
+    assert screen.parse_prompt(idle) is None
+
+
+def test_review_ignores_bullets_above_and_joins_wrapped_lines():
+    above = "⏺ 我整理了兩個方向：\n  ● 方案甲：直接改\n  ● 方案乙：先查\n❯ 好，問我\n"
+    assert len(screen.parse_prompt(above + REVIEW)["review"]) == 2
+    wrapped = """
+Review your answers
+ ● Which color should the new
+   button use?
+   → a very long answer that
+     wraps onto next line
+Ready to submit your answers?
+❯ 1. Submit answers
+  2. Cancel
+"""
+    assert screen.parse_prompt(wrapped)["review"] == [
+        {"question": "Which color should the new button use?", "answer": "a very long answer that wraps onto next line"}
+    ]
