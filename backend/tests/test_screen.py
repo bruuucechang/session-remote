@@ -88,3 +88,66 @@ def test_submit_moves_from_cursor():
 
 def test_single_select_has_no_submit():
     assert "submit_key" not in screen.parse_prompt(ASK)
+
+
+# 一次問兩題、兩題都答完之後的確認頁：沒有「Enter to select」頁尾（2026-10-22，v2.1.306）
+REVIEW = """
+❯ 請立刻用 AskUserQuestion 一次問我兩題
+────────────────────────────────
+←  ☒ 顏色  ☒ 大小  ✔ Submit  →
+Review your answers
+ ● 請選擇「顏色」：紅或綠？
+   → 紅
+ ● 請選擇「大小」：大或小？
+   → 小
+Ready to submit your answers?
+❯ 1. Submit answers
+  2. Cancel
+"""
+
+
+def test_review_page_is_a_prompt():
+    p = screen.parse_prompt(REVIEW)
+    assert p is not None
+    assert [o["label"] for o in p["options"]] == ["Submit answers", "Cancel"]
+    assert p["selected"] == "1"
+    assert p["review"] == [
+        {"question": "請選擇「顏色」：紅或綠？", "answer": "紅"},
+        {"question": "請選擇「大小」：大或小？", "answer": "小"},
+    ]
+
+
+def test_review_only_on_review_page():
+    assert "review" not in screen.parse_prompt(ASK)
+
+
+def test_review_text_in_chat_is_not_a_prompt():
+    idle = """
+⏺ 確認頁長這樣：
+  Ready to submit your answers?
+  1. Submit answers
+  2. Cancel
+────────────────────────────────
+❯
+────────────────────────────────
+  ? for shortcuts
+"""
+    assert screen.parse_prompt(idle) is None
+
+
+def test_review_ignores_bullets_above_and_joins_wrapped_lines():
+    above = "⏺ 我整理了兩個方向：\n  ● 方案甲：直接改\n  ● 方案乙：先查\n❯ 好，問我\n"
+    assert len(screen.parse_prompt(above + REVIEW)["review"]) == 2
+    wrapped = """
+Review your answers
+ ● Which color should the new
+   button use?
+   → a very long answer that
+     wraps onto next line
+Ready to submit your answers?
+❯ 1. Submit answers
+  2. Cancel
+"""
+    assert screen.parse_prompt(wrapped)["review"] == [
+        {"question": "Which color should the new button use?", "answer": "a very long answer that wraps onto next line"}
+    ]

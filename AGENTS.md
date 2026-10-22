@@ -80,6 +80,8 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
   改用 `ios/Sources/Composer.swift`（TextEditor＋量高度，長到上限就框內捲動，要 `.clipped()`）。
 - **一次問好幾題時，hook 回報的是整張題目表，畫面顯示的是「目前那一題」**：題目與說明要用選項標籤比對出第幾題
   （`PromptMatch`），不能拿第一題。
+- **一次問好幾題、答完最後一題後的確認頁（Review your answers → `1. Submit answers`／`2. Cancel`）沒有頁尾**，
+  `screen.parse_prompt` 靠「Ready to submit your answers?」那一行認，回傳 `review`（每題答了什麼）。只認頁尾的話手機上不會出現送出鈕（2026-10-22 實測 v2.1.306）。
 - **複選題**的選項前面有 `[ ]`／`[✔]`、Submit 是沒編號的一行：數字鍵只會勾，送出要移到 Submit 按 Enter（key `submit`）。
 - **回覆裡的換行照送**：文字一次 `write` 進去會被當成貼上、換行保留，送出靠之後另外按的 Enter（2026-10-21 實測）。
 - **即時狀態的 content-state 欄位名**（working／waiting／done／headline）在 `notify.activity_payload` 與

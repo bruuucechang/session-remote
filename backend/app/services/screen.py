@@ -20,6 +20,40 @@ TYPE_SOMETHING = ("Type something", "Other", "其他")
 # 複選題每個選項前面有核取方塊；Submit 是清單最後一行、沒有編號
 _CHECK = re.compile(r"^\[([ ✔✓xX×])\]\s*(.*)$")
 _SUBMIT = re.compile(r"^\s*(❯\s*)?Submit\s*$")
+# 一次問好幾題、答完最後一題後的確認頁（「1. Submit answers / 2. Cancel」）沒有頁尾，
+# 要靠這一行認（2026-10-22 實測 v2.1.306）
+_REVIEW = ("Ready to submit your answers?", "Review your answers")
+
+
+def _review(window: list[str]) -> list[dict] | None:
+    """確認頁上列出的「● 題目／→ 答案」；不是確認頁就回 None。
+
+    要三個條件都成立才算：有「Review your answers」、它後面有「Ready to submit your answers?」
+    而且在最後幾行、那一行之後全是編號選項——免得對話裡貼出來的範例被當成確認頁。
+    """
+    r = next((i for i in range(len(window) - 1, -1, -1) if window[i].strip() == _REVIEW[0]), None)
+    if r is None or r < len(window) - 8 or not all(_OPT.match(l) for l in window[r + 1:]):
+        return None
+    h = next((i for i in range(r - 1, -1, -1) if window[i].strip() == _REVIEW[1]), None)
+    if h is None:
+        return None
+    items: list[dict] = []
+    in_answer = False
+    for l in window[h + 1:r]:
+        t = l.strip()
+        if t.startswith("● "):
+            items.append({"question": t[2:].strip(), "answer": ""})
+            in_answer = False
+        elif t.startswith("→ ") and items:
+            items[-1]["answer"] = t[2:].strip()
+            in_answer = True
+        elif items and t:
+            # 太長被換行：接回上一段（英數字之間補空白）
+            field = "answer" if in_answer else "question"
+            prev = items[-1][field]
+            sep = " " if prev[-1:].isascii() and prev[-1:].isalnum() and t[:1].isascii() and t[:1].isalnum() else ""
+            items[-1][field] = prev + sep + t
+    return items
 
 
 def tail(text: str, n: int = 18) -> list[str]:
@@ -53,7 +87,8 @@ def _unnumbered(window: list[str]) -> tuple[list[dict], str | None]:
 def parse_prompt(text: str) -> dict | None:
     lines = [l.rstrip() for l in text.splitlines() if l.strip()]
     window = lines[-30:]
-    if not any(any(f in l for f in _FOOTER) for l in window[-8:]):
+    review = _review(window)
+    if review is None and not any(any(f in l for f in _FOOTER) for l in window[-8:]):
         return None
     options = []
     selected = None
@@ -86,6 +121,8 @@ def parse_prompt(text: str) -> dict | None:
             return None
     other = next((o["key"] for o in options if o["label"].startswith(TYPE_SOMETHING)), None)
     out = {"options": options, "selected": selected, "type_key": other}
+    if review is not None:
+        out["review"] = review
     if submit_after:
         # 複選題：數字鍵只會勾／取消，送出要移到 Submit 那一行按 Enter（actions.press("submit")）
         out["submit_key"] = "submit"
