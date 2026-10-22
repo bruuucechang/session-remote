@@ -1,0 +1,22 @@
+ ▐▛███▛█   Claude Code v2.1.307
+▝▜██████▀  Haiku 5.5 · Claude Max
+ ▝▝   ▝▝   /…/scratchpad
+❯ 請立刻用 AskUserQuestion
+  一次問我三題，不要做別的事：第一題
+  header「顏色」單選，選項紅、綠；第二題
+  header「配料」multiSelect 複選，選項起司、番茄、洋蔥，每
+  個選項說明都寫一段超過四十個字的長說明文字；第三題
+  header「大小」單選，選項大、小。
+────────────────────────────────────────────────────────────
+←  ☒ 顏色  ☒ 配料  ☒ 大小  ✔ Submit  →
+Review your answers
+ ● 你要哪一種顏色？
+   → 綠
+ ● 要加哪些配料？（可複選）
+   → 起司, 洋蔥
+ ● 你要哪個大小？
+   → 大
+Ready to submit your answers?
+❯ 1. Submit answers
+  2. Cancel
+───────────────────────────── 雜項｜立刻用 AskUserQuestio… ─

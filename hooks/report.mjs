@@ -24,12 +24,15 @@ function ps(field, pid) {
   return execFileSync("ps", ["-o", `${field}=`, "-p", String(pid)], { encoding: "utf8" }).trim();
 }
 
-// hook 是 claude 的子程序（中間可能隔一層 shell）：往上找第一個有 tty 的祖先
+// hook 是 claude 的子程序（中間可能隔一層 shell）：往上找第一個有 tty 的祖先。
+// 路上先碰到一個沒有 tty 的 claude，就是被別人的 Bash 工具或腳本叫起來的 `claude -p`：
+// 再往上會找到外層 session 的 tty，冒名送出去會蓋掉外層那筆，所以不送
 function findTty() {
   let pid = process.ppid;
   for (let i = 0; i < 6 && pid > 1; i++) {
     const tty = ps("tty", pid);
     if (tty && tty !== "??") return { tty: tty.startsWith("/dev/") ? tty : `/dev/${tty}`, pid };
+    if (/(^|\/)claude(\s|$)|\/claude\/versions\//.test(ps("comm", pid))) break;
     pid = Number(ps("ppid", pid));
   }
   return { tty: null, pid: null };

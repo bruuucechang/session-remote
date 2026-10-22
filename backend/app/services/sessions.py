@@ -54,6 +54,10 @@ def apply_hook(event: str, tty: str | None, pid: int | None, config_dir: str, pa
     with _lock:
         sessions = _state["sessions"]
         if event == "SessionEnd":
+            # 只刪同一個 session 的：/clear 時新的 SessionStart 可能先到，舊的 SessionEnd 後到
+            rec = sessions.get(tty)
+            if rec and rec.get("session_id") not in (None, payload.get("session_id")):
+                return
             sessions.pop(tty, None)
             _save()
             events.bump()
@@ -75,8 +79,14 @@ def apply_hook(event: str, tty: str | None, pid: int | None, config_dir: str, pa
         })
         prev = rec.get("status")
         tool = payload.get("tool_name", "")
+        # subagent 的工具事件帶同一個 session_id、多一個 agent_id：主線程正在問選項題時，它們不能把狀態改回工作中。
+        # 權限提示不擋：那可能就是這個 subagent 自己要的權限，核准後它的 PostToolUse 要能把狀態放回來
+        sub_waiting = (bool(payload.get("agent_id")) and prev == WAITING
+                       and (rec.get("pending") or {}).get("kind") == "ask")
 
-        if event == "SessionStart":
+        if sub_waiting and event in ("PreToolUse", "PostToolUse"):
+            pass
+        elif event == "SessionStart":
             _set(rec, IDLE)
         elif event == "UserPromptSubmit":
             _set(rec, WORKING, activity="")
@@ -84,6 +94,9 @@ def apply_hook(event: str, tty: str | None, pid: int | None, config_dir: str, pa
             if tool == "AskUserQuestion":
                 qs = (payload.get("tool_input") or {}).get("questions") or []
                 _set(rec, WAITING, pending={"kind": "ask", "questions": qs})
+            elif tool == "ExitPlanMode":
+                # 計畫模式交計畫：一定要你核准才會往下
+                _set(rec, WAITING, pending={"kind": "permission", "message": "計畫寫好了，等你核准"})
             else:
                 _set(rec, WORKING, activity=f"{tool}：{transcript.tool_summary(tool, payload.get('tool_input'))}")
         elif event == "PostToolUse":
@@ -91,8 +104,10 @@ def apply_hook(event: str, tty: str | None, pid: int | None, config_dir: str, pa
         elif event == "Notification":
             msg = payload.get("message", "")
             kind = payload.get("notification_type", "")
-            if kind == "idle_prompt" or "waiting for your input" in msg:
-                pass   # 做完 60 秒後的「閒置」提醒：狀態已經是 done，不重複
+            # 只有真的在等你決定的通知才算（權限、MCP 要你填的表單）；auth_success 這類不算
+            asks = kind in ("permission_prompt", "elicitation_dialog") or (not kind and "permission" in msg.lower())
+            if not asks:
+                pass
             elif rec.get("status") != WAITING or (rec.get("pending") or {}).get("kind") != "ask":
                 _set(rec, WAITING, pending={"kind": "permission", "message": msg})
         elif event == "Stop":

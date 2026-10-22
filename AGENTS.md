@@ -83,6 +83,13 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
 - **一次問好幾題、答完最後一題後的確認頁（Review your answers → `1. Submit answers`／`2. Cancel`）沒有頁尾**，
   `screen.parse_prompt` 靠「Ready to submit your answers?」那一行認，回傳 `review`（每題答了什麼）。只認頁尾的話手機上不會出現送出鈕（2026-10-22 實測 v2.1.306）。
 - **複選題**的選項前面有 `[ ]`／`[✔]`、Submit 是沒編號的一行：數字鍵只會勾，送出要移到 Submit 按 Enter（key `submit`）。
+  **一次問好幾題時那一行寫 `Next` 不是 `Submit`**。複選題的 Type something 按數字只會打勾、游標不動：
+  要用方向鍵移到那一行直接打字（會自動勾起來），**不要按 Enter**（會取消勾選）（2026-10-22 實測 v2.1.307）。
+- **選單開著時從手機打字**：沒有可以打字的那一項（確認頁、信任資料夾）就拒絕——字會被吃掉，Enter 卻會按下游標那一項。
+  權限提示的「No, and tell Claude…」、計畫核准的「Tell Claude what to change」都當成 Type something。
+- **手機按選項會帶 `label`**，`actions.press` 核對畫面上同一個 key 還是不是那個字，不是就拒絕（手機停在上一題時數字會送進下一題）。
+- **巢狀的 `claude -p`**（被 Bash 工具或腳本叫起來的）往上找 tty 會找到外層 session：`report.mjs` 路上碰到沒有 tty 的 claude 就不送。
+  subagent 的工具事件帶 `agent_id`，主線程在問選項題時不准把狀態改回工作中。
 - **回覆裡的換行照送**：文字一次 `write` 進去會被當成貼上、換行保留，送出靠之後另外按的 Enter（2026-10-21 實測）。
 - **即時狀態的 content-state 欄位名**（working／waiting／done／headline）在 `notify.activity_payload` 與
   `ios/Shared/SharedConfig.swift` 各寫一次，改一邊另一邊沒改，推播來的更新會解不開、畫面停在舊的，不報錯。
