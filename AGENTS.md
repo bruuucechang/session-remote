@@ -98,7 +98,8 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
 - 小工具與鎖定畫面在無頭模擬器擺不出來：`SIMCTL_CHILD_SR_PREVIEW=widgets tools/sim-shot.sh out.png` 開一頁畫出來看；
   動態島要 `SIMCTL_CHILD_SR_ACTIVITY=1` 啟動後切到別的 app 再截圖。
   其他直接打開某一頁的開關：`SR_TOOL=<訊息 id 或工具名>`（工具詳情）、`SR_SEARCH=<字>`（對話搜尋）、
-  `SR_NEW=1`（開新 session）、`SR_PAGE=30`（一頁幾則）、`SR_SCROLL=top`、`SR_DRAFT`／`SR_FOCUS=1`（輸入框）。
+  `SR_NEW=1`（開新 session，加 `SR_DIR=<路徑>` 預選資料夾）、`SR_PAGE=30`（一頁幾則）、`SR_SCROLL=top`、`SR_DRAFT`／`SR_FOCUS=1`（輸入框）。
+- **開新 session 要有明顯的送出鈕**：以前點資料夾就直接開，填了第一句話之後鍵盤蓋住清單、使用者找不到哪裡送出。現在點資料夾只是選，按右上角「開始」才開（2026-10-25）。
 - 信任資料夾這類**沒編號的選單**只能用方向鍵：選項 key 是 `pick:N`，`actions._pick` 換算成 ↑↓＋Enter。
 
 ## 做過但結論是「不做」的
