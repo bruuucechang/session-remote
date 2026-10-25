@@ -26,6 +26,10 @@ final class Store: ObservableObject {
     var pushToken: String?
     private var eventsTask: Task<Void, Never>?
 
+    /// 模擬器驗收／UI 測試帶 SR_URL 連假資料後端時為 true：這時不准寫進 App Group，
+    /// 不然真機跑完測試，手機上的小工具會指到假資料後端
+    private var overridden = false
+
     init() {
         #if DEBUG
         // 模擬器驗收用：SIMCTL_CHILD_SR_URL／SR_TOKEN／SR_OPEN 從 simctl launch 帶進來，
@@ -34,6 +38,7 @@ final class Store: ObservableObject {
         if let u = env["SR_URL"], let t = env["SR_TOKEN"] {
             serverURL = u
             token = t
+            overridden = true
         }
         if let o = env["SR_OPEN"], !o.isEmpty { openSession = o }
         #endif
@@ -56,9 +61,11 @@ final class Store: ObservableObject {
     func save(serverURL: String, token: String) {
         self.serverURL = serverURL.trimmingCharacters(in: .whitespaces)
         self.token = token.trimmingCharacters(in: .whitespaces)
-        UserDefaults.standard.set(self.serverURL, forKey: "serverURL")
-        Keychain.set("token", self.token)
-        SharedConfig.save(url: self.serverURL, token: self.token)
+        if !overridden {
+            UserDefaults.standard.set(self.serverURL, forKey: "serverURL")
+            Keychain.set("token", self.token)
+            SharedConfig.save(url: self.serverURL, token: self.token)
+        }
         restart()
     }
 
@@ -109,8 +116,8 @@ final class Store: ObservableObject {
 
     func start() {
         // 舊版只存在 app 自己的設定裡：補一份到 App Group 給小工具用
-        if isConfigured { SharedConfig.save(url: serverURL, token: token) }
-        if let api { LiveActivityController.shared.attach(api: api) }
+        if isConfigured && !overridden { SharedConfig.save(url: serverURL, token: token) }
+        if let api, !overridden { LiveActivityController.shared.attach(api: api) }
         guard eventsTask == nil else { return }
         eventsTask = Task { [weak self] in
             var delay: UInt64 = 1

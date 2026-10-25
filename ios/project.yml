@@ -42,6 +42,8 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.bruuucechang.sessionremote
             CFBundleURLSchemes: [sessionremote]
+    scheme:
+      testTargets: [SessionRemoteUITests]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bruuucechang.sessionremote
@@ -71,4 +73,23 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bruuucechang.sessionremote.widgets
+        TARGETED_DEVICE_FAMILY: "1"
+
+  # 自動化 UI 測試（tools/uitest.sh）：吃假資料後端（tools/fake-backend.sh），不碰真的 session
+  SessionRemoteUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: SessionRemote
+    info:
+      path: UITests/Info.plist
+      properties:
+        # 測試程式自己也要打假資料後端（重來、讀送出去的字），走 Tailscale 的 http
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bruuucechang.sessionremote.uitests
+        TEST_TARGET_NAME: SessionRemote
         TARGETED_DEVICE_FAMILY: "1"

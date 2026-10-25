@@ -5,6 +5,8 @@ import os
 import subprocess
 from dataclasses import dataclass
 
+from .. import config
+
 
 @dataclass
 class ClaudeProc:
@@ -58,3 +60,10 @@ def alive(pid: int) -> bool:
         return False
     except PermissionError:
         return True
+
+
+# 假資料模式：整組換成替身（UI 測試用，不碰真的 iTerm2／程序）
+if config.FAKE:
+    from . import fake as _fake
+    list_claude = _fake.list_claude  # noqa: F811
+    alive = _fake.alive  # noqa: F811

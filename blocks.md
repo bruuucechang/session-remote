@@ -3,7 +3,7 @@
 > 一個 session 做一塊。做完跑驗收 → 打勾 → 寫 HANDOFF → 關掉開新的。
 > 規格：`docs/ui-overhaul-spec.md`（範圍、測試對象、明確不做都以它為準）。
 
-## B1 測試地基：假資料後端＋XCUITest＋真機跑得起來  [進行中]
+## B1 測試地基：假資料後端＋XCUITest＋真機跑得起來  [完成]
 - 目標：有一條 `xcodebuild test` 能在接著的 iPhone 上跑、吃假資料後端、點開列表與一個 session 並截圖
 - 驗收：`tools/uitest.sh`（新）在真機跑完全綠，輸出截圖目錄；後端 `cd backend && .venv/bin/pytest` 綠
 - 碰：`backend/app/`（假資料模式，只加 repositories 層的替身）、`ios/project.yml`（加 `SessionRemoteUITests` target）、`ios/UITests/`、`tools/uitest.sh`
@@ -14,12 +14,14 @@
 - 驗收：`tools/uitest.sh` 真機全綠（含這塊新增的測試，各看過紅一次）；每種狀態截圖目視過
 - 碰：`ios/Sources/SessionListView.swift`、`NewSessionView.swift`、`SettingsView.swift`、`SessionRemoteApp.swift`、`ios/UITests/`
 - 不做：對話頁與回答題目（B3、B4）；小工具與推播
+- 先讀過的：設定頁「儲存並連線」失敗時沒講怎麼辦；關分頁／標星號失敗的錯誤擠在列表最上面一行紅字（不在出事的那一列）；`SessionRow.ago` 用 status_since，做完很久的 session 也只顯示「6小時前」沒講是什麼時候做完
 
 ## B3 對話頁：訊息、輸入框、Esc、關分頁、搜尋、工具詳情  [未開始]
 - 目標：對話頁 bug 修掉、送出鈕永遠看得到、長訊息與工具詳情正常、狀態齊，各有 UI 測試
 - 驗收：同 B2
 - 碰：`ios/Sources/SessionDetailView.swift`、`MessageViews.swift`、`Composer.swift`、`ToolDetailView.swift`、`ios/UITests/`
 - 不做：題目卡（B4）
+- B1 實測時看到的：輸入框空著時送出鈕看起來還是可以按；收起來的工具群組只顯示最後一個（Edit），前面的 Bash 看不出來
 
 ## B4 回答題目：單選、複選、多題確認頁、權限提示、計畫核准、信任資料夾  [未開始]
 - 目標：每種題目在假資料下畫得對、按得對（送出的 key 與 label 對），各有 UI 測試
