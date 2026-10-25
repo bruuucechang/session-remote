@@ -16,7 +16,7 @@
 - 不做：對話頁與回答題目（B3、B4）；小工具與推播
 - 先讀過的：設定頁「儲存並連線」失敗時沒講怎麼辦；關分頁／標星號失敗的錯誤擠在列表最上面一行紅字（不在出事的那一列）；`SessionRow.ago` 用 status_since，做完很久的 session 也只顯示「6小時前」沒講是什麼時候做完
 
-## B3 對話頁：訊息、輸入框、Esc、關分頁、搜尋、工具詳情  [未開始]
+## B3 對話頁：訊息、輸入框、Esc、關分頁、搜尋、工具詳情  [進行中]
 - 目標：對話頁 bug 修掉、送出鈕永遠看得到、長訊息與工具詳情正常、狀態齊，各有 UI 測試
 - 驗收：同 B2
 - 碰：`ios/Sources/SessionDetailView.swift`、`MessageViews.swift`、`Composer.swift`、`ToolDetailView.swift`、`ios/UITests/`
