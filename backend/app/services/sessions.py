@@ -339,6 +339,13 @@ def set_star(session_id: str, starred: bool) -> None:
     events.bump()
 
 
+def replace_stars(session_ids: list[str]) -> None:
+    """整份換掉星號（假資料模式重來時用）。"""
+    with _lock:
+        store.save("stars", {k: _now() for k in session_ids})
+    events.bump()
+
+
 def is_starred(session_id: str) -> bool:
     return session_id in store.load("stars")
 

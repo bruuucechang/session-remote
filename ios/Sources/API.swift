@@ -203,13 +203,29 @@ struct API {
     }
 
     private func send<T: Decodable>(_ req: URLRequest, as: T.Type) async throws -> T {
-        let (data, resp) = try await URLSession.shared.data(for: req)
+        let data: Data, resp: URLResponse
+        do {
+            (data, resp) = try await URLSession.shared.data(for: req)
+        } catch let e as URLError where e.code != .cancelled {
+            throw APIError(message: Self.describe(e))
+        }
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(code) else {
             let detail = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["detail"] as? String
             throw APIError(message: detail ?? "伺服器回 \(code)")
         }
         return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    /// 系統的網路錯誤是英文（app 沒有在地化），換成講得出原因的中文
+    static func describe(_ e: URLError) -> String {
+        switch e.code {
+        case .notConnectedToInternet: return "手機沒有網路"
+        case .timedOut: return "等筆電回應逾時"
+        case .cannotConnectToHost, .cannotFindHost, .networkConnectionLost, .dnsLookupFailed:
+            return "連不到筆電的服務"
+        default: return "網路錯誤（\(e.code.rawValue)）"
+        }
     }
 
     private struct OK: Decodable { let ok: Bool }

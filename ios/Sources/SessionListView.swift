@@ -9,7 +9,8 @@ struct SessionListView: View {
     @AppStorage("idleExpanded") private var idleExpanded = false
     @State private var closing: SessionSummary?
     @State private var query = ""
-    @State private var closeError: String?
+    /// 關分頁／標星號失敗的原因，顯示在出事的那一列（key 是 session id）
+    @State private var rowErrors: [String: String] = [:]
 
     /// 依狀態分組，要你處理的排最上面
     private static let order: [(key: String, title: String)] = [
@@ -34,71 +35,55 @@ struct SessionListView: View {
     var body: some View {
         NavigationStack(path: $path) {
             List {
-                if let err = store.error ?? closeError {
-                    Label(err, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                        .font(.footnote)
+                // 連不上但手上還有上次的列表：留著列表，上面講清楚這是舊的
+                if let err = store.error, !store.sessions.isEmpty {
+                    Section {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Label("連不上筆電，下面是上次的資料", systemImage: "wifi.exclamationmark")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.orange)
+                            Text(err).font(.footnote).foregroundStyle(.secondary)
+                        }
+                        Button("再試一次") { Task { await store.refresh() } }
+                    }
                 }
-                if !store.quota.isEmpty {
+                // 要你處理的（星號、等你回答）在最上面，額度卡接在後面
+                let urgent = Self.urgent
+                ForEach(sections.filter { urgent.contains($0.title) }, id: \.title) { section($0) }
+                if !store.quota.isEmpty && query.isEmpty {
                     Section {
                         QuotaCard(accounts: store.quota)
                     }
                 }
-                ForEach(sections, id: \.title) { sec in
-                    // 搜尋時不收起，找到的就要看得到
-                    let foldable = sec.title == "待命" && query.isEmpty
-                    Section {
-                        if !foldable || idleExpanded {
-                            ForEach(sec.items) { s in
-                                NavigationLink(value: s.id) { SessionRow(s: s) }
-                                    .swipeActions(edge: .leading) {
-                                        Button { toggleStar(s) } label: {
-                                            Label(s.starred == true ? "取消星號" : "標星號",
-                                                  systemImage: s.starred == true ? "star.slash" : "star.fill")
-                                        }
-                                        .tint(.yellow)
-                                    }
-                                    .swipeActions(edge: .trailing) {
-                                        Button { closing = s } label: { Label("關掉", systemImage: "xmark.circle") }
-                                            .tint(.red)
-                                    }
-                            }
-                        }
-                    } header: {
-                        if foldable {
-                            Button {
-                                withAnimation(.snappy) { idleExpanded.toggle() }
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Text("\(sec.title) · \(sec.items.count)")
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption2.weight(.bold))
-                                        .rotationEffect(.degrees(idleExpanded ? 90 : 0))
-                                    Spacer()
-                                    if !idleExpanded {
-                                        Text(sec.items.map { SessionName($0.name).project }.uniqued().joined(separator: "、"))
-                                            .lineLimit(1).truncationMode(.tail)
-                                            .textCase(nil)
-                                    }
-                                }
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        } else if sec.title == "星號" {
-                            Label("\(sec.title) · \(sec.items.count)", systemImage: "star.fill")
-                        } else {
-                            Text("\(sec.title) · \(sec.items.count)")
-                        }
-                    }
-                }
+                ForEach(sections.filter { !urgent.contains($0.title) }, id: \.title) { section($0) }
             }
             .listStyle(.insetGrouped)
             .overlay {
                 if !store.loaded {
                     ProgressView("連到筆電…")
-                } else if store.sessions.isEmpty && store.error == nil {
-                    ContentUnavailableView("沒有 session", systemImage: "terminal",
-                                           description: Text("筆電的 iTerm2 裡還沒有跑 Claude Code。按右上角 ＋ 開一個。"))
+                } else if store.sessions.isEmpty, let err = store.error {
+
+                    ContentUnavailableView {
+                        Label("連不上筆電", systemImage: "wifi.exclamationmark")
+                    } description: {
+                        Text("\(err)。確認筆電開著、session-remote 服務在跑、手機連著 Tailscale。")
+                    } actions: {
+                        Button("再試一次") { Task { await store.refresh() } }
+                            .buttonStyle(.borderedProminent)
+                        Button("檢查設定") { showSettings = true }
+                    }
+                } else if !query.isEmpty && sections.isEmpty {
+                    ContentUnavailableView("找不到「\(query)」", systemImage: "magnifyingglass",
+                                           description: Text("專案名稱、資料夾、帳號都沒有這幾個字。"))
+                } else if store.sessions.isEmpty {
+                    ContentUnavailableView {
+                        Label("沒有 session", systemImage: "terminal")
+                    } description: {
+                        Text("筆電的 iTerm2 裡還沒有跑 Claude Code。")
+                    } actions: {
+                        Button("開新 session") { showNew = true }
+                            .buttonStyle(.borderedProminent)
+                    }
                 }
             }
             .searchable(text: $query, prompt: "找專案或帳號")
@@ -140,7 +125,8 @@ struct SessionListView: View {
                 Button("結束 Claude 並關掉分頁", role: .destructive) {
                     guard let s = closing, let api = store.api else { return }
                     Task {
-                        do { try await api.close(s.id); closeError = nil } catch { closeError = error.localizedDescription }
+                        do { try await api.close(s.id); rowErrors[s.id] = nil }
+                        catch { rowErrors[s.id] = "關不掉：\(error.localizedDescription)" }
                         await store.refresh()
                     }
                 }
@@ -150,6 +136,8 @@ struct SessionListView: View {
             .sheet(isPresented: $showSettings) {
                 NavigationStack { SettingsView(firstRun: false) }
             }
+            // 列表更新過（筆電那邊有變化）就把列上的舊錯誤清掉，不然網路恢復了還一直掛著
+            .onChange(of: store.tick) { rowErrors = [:] }
             .onChange(of: store.openSession) { _, sid in
                 if let sid { path = [sid]; store.openSession = nil }
             }
@@ -165,11 +153,62 @@ struct SessionListView: View {
 }
 
 extension SessionListView {
+    static let urgent: Set<String> = ["星號", "等你回答"]
+
+    @ViewBuilder
+    private func section(_ sec: (title: String, items: [SessionSummary])) -> some View {
+        // 搜尋時不收起，找到的就要看得到
+        let foldable = sec.title == "待命" && query.isEmpty
+        Section {
+            if !foldable || idleExpanded {
+                ForEach(sec.items) { s in
+                    NavigationLink(value: s.id) { SessionRow(s: s, error: rowErrors[s.id]) }
+                        .swipeActions(edge: .leading) {
+                            Button { toggleStar(s) } label: {
+                                Label(s.starred == true ? "取消星號" : "標星號",
+                                      systemImage: s.starred == true ? "star.slash" : "star.fill")
+                            }
+                            .tint(.yellow)
+                        }
+                        .swipeActions(edge: .trailing) {
+                            Button { closing = s } label: { Label("關掉", systemImage: "xmark.circle") }
+                                .tint(.red)
+                        }
+                }
+            }
+        } header: {
+            if foldable {
+                Button {
+                    withAnimation(.snappy) { idleExpanded.toggle() }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("\(sec.title) · \(sec.items.count)")
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.bold))
+                            .rotationEffect(.degrees(idleExpanded ? 90 : 0))
+                        Spacer()
+                        if !idleExpanded {
+                            Text(sec.items.map { SessionName($0.name).project }.uniqued().joined(separator: "、"))
+                                .lineLimit(1).truncationMode(.tail)
+                                .textCase(nil)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            } else if sec.title == "星號" {
+                Label("\(sec.title) · \(sec.items.count)", systemImage: "star.fill")
+            } else {
+                Text("\(sec.title) · \(sec.items.count)")
+            }
+        }
+    }
+
     func toggleStar(_ s: SessionSummary) {
         guard let api = store.api else { return }
         Task {
-            do { try await api.star(s.id, s.starred != true); closeError = nil }
-            catch { closeError = error.localizedDescription }
+            do { try await api.star(s.id, s.starred != true); rowErrors[s.id] = nil }
+            catch { rowErrors[s.id] = "星號沒改到：\(error.localizedDescription)" }
             await store.refresh()
         }
     }
@@ -177,6 +216,7 @@ extension SessionListView {
 
 struct SessionRow: View {
     let s: SessionSummary
+    var error: String? = nil
 
     var body: some View {
         let name = SessionName(s.name)
@@ -190,7 +230,7 @@ struct SessionRow: View {
                     Text(name.project).font(.body.weight(.semibold)).lineLimit(1)
                     Spacer(minLength: 4)
                     if let since = s.status_since.flatMap(parseDate) {
-                        Text(Self.ago(since)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                        Text(Self.when(s.status, since)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
                     }
                 }
                 HStack(spacing: 6) {
@@ -208,6 +248,11 @@ struct SessionRow: View {
                         .foregroundStyle(preview.color)
                         .lineLimit(2)
                         .padding(.top, 2)
+                }
+                if let error {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.red)
                 }
             }
         }
@@ -240,8 +285,37 @@ struct SessionRow: View {
         agoFormatter.localizedString(for: d, relativeTo: Date())
     }
 
-    static func ago(_ d: Date) -> String {
-        Date().timeIntervalSince(d) < 60 ? "剛剛" : agoFormatter.localizedString(for: d, relativeTo: Date())
+    private static let clock: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_Hant_TW")
+        f.dateFormat = "HH:mm"
+        return f
+    }()
+
+    private static let day: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_Hant_TW")
+        f.dateFormat = "M/d HH:mm"
+        return f
+    }()
+
+    /// 一小時內講「幾分鐘前」，再久就講幾點（「6 小時前」看不出是今天早上還是昨晚）；做完的加上「做完」
+    static func when(_ status: String, _ d: Date, now: Date = Date()) -> String {
+        let t: String
+        if now.timeIntervalSince(d) < 3600 {
+            t = ago(d, now: now)
+        } else if Calendar.current.isDate(d, inSameDayAs: now) {
+            t = "今天 " + clock.string(from: d)
+        } else if let y = Calendar.current.date(byAdding: .day, value: -1, to: now), Calendar.current.isDate(d, inSameDayAs: y) {
+            t = "昨天 " + clock.string(from: d)
+        } else {
+            t = day.string(from: d)
+        }
+        return status == "done" ? t + " 做完" : t
+    }
+
+    static func ago(_ d: Date, now: Date = Date()) -> String {
+        now.timeIntervalSince(d) < 60 ? "剛剛" : agoFormatter.localizedString(for: d, relativeTo: now)
     }
 }
 

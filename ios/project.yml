@@ -29,6 +29,9 @@ targets:
       path: Info.plist
       properties:
         CFBundleDisplayName: Sessions
+        # 宣告繁中：不然手機語言是英文時，系統元件（確認框的取消、搜尋沒結果）會講英文
+        CFBundleDevelopmentRegion: zh-Hant
+        CFBundleLocalizations: [zh-Hant]
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIBackgroundModes: [remote-notification]

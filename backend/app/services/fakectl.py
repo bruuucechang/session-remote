@@ -4,9 +4,10 @@ from ..repositories import fake
 from . import events, sessions
 
 
-def reset() -> None:
-    fake.reset()
+def reset(name: str = "") -> None:
+    fake.reset(name)
     sessions.reload_state(fake.records())
+    sessions.replace_stars(fake.starred())
 
 
 def log() -> list[dict]:

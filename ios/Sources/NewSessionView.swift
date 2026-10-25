@@ -93,6 +93,8 @@ struct NewSessionView: View {
                     Image(systemName: "checkmark").foregroundStyle(.tint)
                 }
             }
+            // 原生的選擇清單：字是一般顏色，只有打勾是主色
+            .foregroundStyle(.primary)
         }
         .disabled(busy)
     }

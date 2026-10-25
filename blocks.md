@@ -9,7 +9,7 @@
 - 碰：`backend/app/`（假資料模式，只加 repositories 層的替身）、`ios/project.yml`（加 `SessionRemoteUITests` target）、`ios/UITests/`、`tools/uitest.sh`
 - 不做：修任何畫面 bug（B2 以後）；測試 session 實測（B5）
 
-## B2 列表、開新 session、設定、配對  [進行中]
+## B2 列表、開新 session、設定、配對  [完成]
 - 目標：這幾頁 bug 修掉、層級整理（要處理的在最上面、空／載入／錯誤狀態齊）、各有 UI 測試
 - 驗收：`tools/uitest.sh` 真機全綠（含這塊新增的測試，各看過紅一次）；每種狀態截圖目視過
 - 碰：`ios/Sources/SessionListView.swift`、`NewSessionView.swift`、`SettingsView.swift`、`SessionRemoteApp.swift`、`ios/UITests/`
@@ -21,6 +21,7 @@
 - 驗收：同 B2
 - 碰：`ios/Sources/SessionDetailView.swift`、`MessageViews.swift`、`Composer.swift`、`ToolDetailView.swift`、`ios/UITests/`
 - 不做：題目卡（B4）
+- B2 看到的：剛開的新 session 還沒有任何訊息時對話頁整片黑，沒有空狀態（「Claude 正在啟動…」之類）
 - B1 實測時看到的：輸入框空著時送出鈕看起來還是可以按；收起來的工具群組只顯示最後一個（Edit），前面的 Bash 看不出來
 
 ## B4 回答題目：單選、複選、多題確認頁、權限提示、計畫核准、信任資料夾  [未開始]

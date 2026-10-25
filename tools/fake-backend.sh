@@ -9,7 +9,7 @@ FIX="$DIR/backend/tests/fixtures/uitest"
 TMP="${SR_FAKE_TMP:-$(mktemp -d "${TMPDIR:-/tmp}/sr-uitest.XXXXXX")}"
 mkdir -p "$TMP/data" "$TMP/context" "$TMP/Projects"/{hello,ledger,atlas,notes}
 export SR_FAKE="$FIX/scenario.json" SESSION_REMOTE_DATA="$TMP/data" SESSION_REMOTE_TOKEN=uitest \
-  ACCOUNTS_FILE="$FIX/accounts.json" QUOTA_FILE="$TMP/none.json" CONTEXT_DIR="$TMP/context" \
+  ACCOUNTS_FILE="$FIX/accounts.json" QUOTA_FILE="$TMP/quota.json" CONTEXT_DIR="$TMP/context" \
   PROJECTS_ROOT="$TMP/Projects" APNS_KEY_PATH= APNS_KEY_ID=
 cd "$DIR/backend"
 .venv/bin/python -c 'import json; from app import config; from app.repositories import fake, store; store.save("sessions", fake.records())'
