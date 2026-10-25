@@ -13,6 +13,7 @@ SIM=0; [ "${1:-}" = "--sim" ] && { SIM=1; shift; }
 
 if [ $SIM = 1 ]; then
   UDID=$(xcrun simctl list devices available | grep -m1 "    ${SIM_DEVICE:-iPhone 17 Pro} (" | grep -oE '[0-9A-F-]{36}')
+  [ -n "$UDID" ] || { echo "✗ 找不到模擬器「${SIM_DEVICE:-iPhone 17 Pro}」"; exit 1; }
   DEST="id=$UDID"; URL="http://127.0.0.1:$PORT"
   # 重開一次：simctl boot 會把當下的 SIMCTL_CHILD_* 留在模擬器的系統環境裡，之後每次啟動 app 都帶著（例如 SR_NEW=1）
   xcrun simctl shutdown "$UDID" >/dev/null 2>&1
@@ -23,11 +24,13 @@ else
 fi
 
 OUT="$DIR/ios/build/uitest/$(date +%Y%m%d-%H%M%S)"; mkdir -p "$OUT/shots"
-FAKE_PORT=$PORT "$DIR/tools/fake-backend.sh" >"$OUT/backend.log" 2>&1 &
+# 埠上已經有人（例如上次沒收掉的假後端）就停：不然健康檢查會打中舊的，測試跑在舊程式上
+lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null && { echo "✗ 埠 $PORT 已被佔用：lsof -nP -iTCP:$PORT -sTCP:LISTEN"; exit 1; }
+SR_FAKE_TMP="$OUT/fake-data" FAKE_PORT=$PORT "$DIR/tools/fake-backend.sh" >"$OUT/backend.log" 2>&1 &
 BE=$!
-trap 'kill $BE 2>/dev/null; wait $BE 2>/dev/null' EXIT
-for _ in $(seq 40); do curl -sf "localhost:$PORT/health" >/dev/null && break; kill -0 $BE 2>/dev/null || break; sleep 0.25; done
-curl -sf "localhost:$PORT/health" >/dev/null || { echo "✗ 假資料後端起不來："; tail -5 "$OUT/backend.log"; exit 1; }
+trap 'kill $BE 2>/dev/null; wait $BE 2>/dev/null; rm -rf "$OUT/fake-data"' EXIT
+for _ in $(seq 40); do kill -0 $BE 2>/dev/null || break; curl -sf "localhost:$PORT/health" >/dev/null && break; sleep 0.25; done
+kill -0 $BE 2>/dev/null && curl -sf "localhost:$PORT/health" >/dev/null || { echo "✗ 假資料後端起不來："; tail -5 "$OUT/backend.log"; exit 1; }
 
 (cd "$DIR/ios" && xcodegen generate -q)
 # TEST_RUNNER_ 開頭的「環境變數」才會傳進測試程式（寫成 xcodebuild 參數是 build setting，傳不進去）
