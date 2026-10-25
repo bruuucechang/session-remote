@@ -61,9 +61,6 @@ struct SessionListView: View {
             .overlay {
                 if !store.loaded {
                     ProgressView("連到筆電…")
-                } else if !query.isEmpty && sections.isEmpty {
-                    ContentUnavailableView("找不到「\(query)」", systemImage: "magnifyingglass",
-                                           description: Text("專案名稱、資料夾、帳號都沒有這幾個字。"))
                 } else if store.sessions.isEmpty, let err = store.error {
 
                     ContentUnavailableView {
@@ -75,6 +72,9 @@ struct SessionListView: View {
                             .buttonStyle(.borderedProminent)
                         Button("檢查設定") { showSettings = true }
                     }
+                } else if !query.isEmpty && sections.isEmpty {
+                    ContentUnavailableView("找不到「\(query)」", systemImage: "magnifyingglass",
+                                           description: Text("專案名稱、資料夾、帳號都沒有這幾個字。"))
                 } else if store.sessions.isEmpty {
                     ContentUnavailableView {
                         Label("沒有 session", systemImage: "terminal")
@@ -136,6 +136,8 @@ struct SessionListView: View {
             .sheet(isPresented: $showSettings) {
                 NavigationStack { SettingsView(firstRun: false) }
             }
+            // 列表更新過（筆電那邊有變化）就把列上的舊錯誤清掉，不然網路恢復了還一直掛著
+            .onChange(of: store.tick) { rowErrors = [:] }
             .onChange(of: store.openSession) { _, sid in
                 if let sid { path = [sid]; store.openSession = nil }
             }
@@ -301,10 +303,10 @@ struct SessionRow: View {
     static func when(_ status: String, _ d: Date, now: Date = Date()) -> String {
         let t: String
         if now.timeIntervalSince(d) < 3600 {
-            t = ago(d)
+            t = ago(d, now: now)
         } else if Calendar.current.isDate(d, inSameDayAs: now) {
             t = "今天 " + clock.string(from: d)
-        } else if Calendar.current.isDate(d, inSameDayAs: now.addingTimeInterval(-86400)) {
+        } else if let y = Calendar.current.date(byAdding: .day, value: -1, to: now), Calendar.current.isDate(d, inSameDayAs: y) {
             t = "昨天 " + clock.string(from: d)
         } else {
             t = day.string(from: d)
@@ -312,8 +314,8 @@ struct SessionRow: View {
         return status == "done" ? t + " 做完" : t
     }
 
-    static func ago(_ d: Date) -> String {
-        Date().timeIntervalSince(d) < 60 ? "剛剛" : agoFormatter.localizedString(for: d, relativeTo: Date())
+    static func ago(_ d: Date, now: Date = Date()) -> String {
+        now.timeIntervalSince(d) < 60 ? "剛剛" : agoFormatter.localizedString(for: d, relativeTo: now)
     }
 }
 

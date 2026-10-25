@@ -57,7 +57,8 @@ struct SettingsView: View {
                         if busy { ProgressView() }
                     }
                 }
-                .disabled(busy || url.isEmpty || token.isEmpty || (!firstRun && !changed))
+                // 沒改又連得上就不用按；連不上時同一組設定也能再試
+                .disabled(busy || url.isEmpty || token.isEmpty || (!firstRun && !changed && store.error == nil))
             }
             if let on = starOnly {
                 Section {

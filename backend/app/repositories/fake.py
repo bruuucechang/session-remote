@@ -16,6 +16,7 @@ scenario.json 的形狀：
 """
 
 import json
+import os
 import re
 import shlex
 import threading
@@ -37,6 +38,9 @@ def _load() -> dict:
 
 
 def _write_quota(q: dict | None) -> None:
+    # 沒明講 QUOTA_FILE 就會寫到 agent-quota 真的快照（tools/fake-backend.sh 會指到暫存目錄）
+    if "QUOTA_FILE" not in os.environ:
+        raise RuntimeError("假資料模式要指定 QUOTA_FILE，不然會改到真的額度快照")
     if q is None:
         config.QUOTA_FILE.unlink(missing_ok=True)
         return
@@ -54,8 +58,9 @@ def reset(name: str = "") -> None:
     """回到 scenario 的初始狀態：分頁、畫面、送字紀錄全部重來。name 給了就換成 scenario-<name>.json。"""
     if name and not re.fullmatch(r"[a-z0-9-]+", name):
         raise ValueError(f"情境名稱只能是小寫英數與 -：{name}")
-    _state["file"] = str(_base() / f"scenario-{name}.json") if name else config.FAKE
-    sc = _load()
+    file = str(_base() / f"scenario-{name}.json") if name else config.FAKE
+    sc = json.loads(Path(file).read_text())   # 讀得到才換：情境名稱打錯時留在原本的情境
+    _state["file"] = file
     _write_quota(sc.get("quota"))
     with _lock:
         _state["sessions"] = {s["id"]: dict(s) for s in sc.get("sessions", [])}
