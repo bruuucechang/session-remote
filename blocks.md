@@ -30,11 +30,11 @@
 - 驗收：同 B2，並且後端 pytest 綠
 - 碰：`ios/Sources/SessionDetailView.swift` 的題目卡部分、`backend` 假資料的題目畫面、`ios/UITests/`
 - 不做：改後端 `screen.parse_prompt` 的解析規則（除非假資料重現出它的 bug，另開一塊）
-- 驗收備註：手機不在，B4 只在模擬器全綠；手機回來後跑一次 `tools/uitest.sh` 真機補驗 B3＋B4
+- 驗收備註：手機不在時 B4 只在模擬器全綠；2026-10-25 22:35 真機補驗 B3＋B4：`tools/uitest.sh` 31 條全綠
 - B4 看到、沒修的（`parse_prompt` 不准動）：權限提示的選項太長換行時，第二行（例如「/Users/…/shop」）被丟掉，手機上只看到「…commands in」；
   Bash 工具的摘要用 description 不是指令本身，題目卡上的工具列要點開才看得到指令
 
-## B5 測試 session 實測＋總驗收  [未開始]
+## B5 測試 session 實測＋總驗收  [進行中]
 - 目標：用自己開的測試 session 在真機上實測送字、按選項、複選、多題確認頁、權限提示、Esc、關分頁、開新帶第一句話
 - 驗收：上述每項成功一次（看筆電上的分頁與 transcript 確認）；`tools/uitest.sh` 全綠；裝到手機請使用者用一次
 - 碰：`ios/UITests/`（實測用的測試，預設不跑）、`tools/`
