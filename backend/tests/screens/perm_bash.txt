@@ -1,0 +1,14 @@
+❯ 清掉 build 重新建一次
+⏺ Bash(rm -rf build && npm run build)
+  ⎿  Running…
+────────────────────────────────────────────────────────────
+ Bash command
+
+   rm -rf build && npm run build
+   Clean and rebuild the project
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don't ask again for npm run build commands in
+   /Users/uitest/Projects/shop
+   3. No, and tell Claude what to do differently (esc)

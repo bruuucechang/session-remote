@@ -24,6 +24,8 @@ struct Pending: Codable, Hashable {
     let kind: String
     let questions: [Question]?
     let message: String?
+    /// 計畫模式交計畫（ExitPlanMode）：kind 是 permission，多這個旗子
+    let plan: Bool?
 
     var headline: String {
         if kind == "ask", let q = questions?.first { return q.question }

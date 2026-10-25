@@ -113,6 +113,12 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
 - **別的程序綁 `127.0.0.1:5390` 會搶走模擬器的請求**：假後端聽 0.0.0.0:5390，macOS 照樣讓別人再綁 127.0.0.1:5390，本機請求改送到它（app 拿到「Not Found」、假後端 log 沒有請求）。`tools/uitest.sh` 跑的期間會監看並在最後印 ⚠（2026-10-25 實測）。
 - **app 剛開就直接推進對話頁（推播、小工具、`SR_OPEN`）時標題列偶爾整條空白**：標題列先用列表那一筆（`listed`），不要只靠 detail 回來後的更新（模擬器連跑 5 次 1 次）。
 - 信任資料夾這類**沒編號的選單**只能用方向鍵：選項 key 是 `pick:N`，`actions._pick` 換算成 ↑↓＋Enter。
+- **題目卡顯示的字在 `PromptWords`**：權限提示、計畫核准、信任資料夾、確認頁是 Claude Code 自己的選單、標籤固定英文，只翻**顯示**的字；
+  按下去送的 key 與 label 一定用原文（`actions.press` 拿原文核對畫面）。認不得的標籤照原文顯示。
+- **題目卡的 UI 測試**用 `scenario-prompts.json`：FAKE-ASK（單選）、FAKE-MULTI（複選＋Submit）、FAKE-STEPS（三題的第 2 題）、FAKE-REVIEW（確認頁）、
+  FAKE-PERM（Bash 權限）、FAKE-TRUST（信任資料夾）；計畫核准是預設情境的 FAKE-PLAN。選項按鈕的無障礙 label 是「標籤，推薦，說明」、複選題 value 是「已勾／沒勾」。
+  手機上跑的測試讀不到筆電的檔案：要換畫面就把文字寫在測試裡 `FakeBackend.setScreen`。
+- **輸入框叫出鍵盤時題目卡會收成兩行**，只限有可以打字的那一項；確認頁、信任資料夾不收，不然選項整個不見、打的字又送不出去（2026-10-25）。
 
 ## 做過但結論是「不做」的
 

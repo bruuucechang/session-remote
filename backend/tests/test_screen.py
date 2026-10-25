@@ -234,3 +234,25 @@ def test_plan_approval_with_more_options_and_title_line():
 def test_bash_mode_input_box_also_ends_chat_list():
     chat = "⏺ 兩個做法：\n  1. 直接改\n  2. 先查\n  Do you want to go with 1 or 2?\n────\n! \n────\n"
     assert screen.parse_prompt(chat) is None
+
+
+# ---- UI 測試（ios/UITests/PromptTests）用的假畫面：手機上按的 key 要跟這裡對得上
+
+
+def test_uitest_prompt_screens():
+    ask = screen.parse_prompt(_scr("ask_single"))
+    assert ask["options"][0]["label"] == "Fly.io (Recommended)" and ask["type_key"] == "4"
+    multi = screen.parse_prompt(_scr("multi_submit"))
+    assert [o.get("checked") for o in multi["options"]][:4] == [False, True, False, False]
+    assert multi["selected"] == "2" and multi["submit_after"] == "4"
+    perm = screen.parse_prompt(_scr("perm_bash"))
+    assert [o["key"] for o in perm["options"]] == ["1", "2", "3"] and perm["type_key"] == "3"
+    trust = screen.parse_prompt(_scr("trust_folder"))
+    assert [o["label"] for o in trust["options"]] == ["No, exit", "Yes, I trust this folder"]
+    assert trust["selected"] == "pick:1" and trust["type_key"] is None
+
+
+def test_uitest_multi_submit_moves():
+    # 游標在番茄（第 2 行）：往下 3 行才到 Submit
+    from app.services.actions import submit_moves
+    assert submit_moves(screen.parse_prompt(_scr("multi_submit"))) == 3
