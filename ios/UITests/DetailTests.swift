@@ -10,7 +10,7 @@ final class DetailTests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 15), "列表沒有 \(name)")
         row.tap()
         // 列表剛好在重新整理時，第一下會被吃掉：沒進去就再點一次
-        if !app.textViews.firstMatch.waitForExistence(timeout: 5), !app.navigationBars.staticTexts[name].exists, row.exists { row.tap() }
+        if !app.textViews.firstMatch.waitForExistence(timeout: 5), !app.navigationBars.staticTexts.matching(NSPredicate(format: "label == %@", name)).firstMatch.exists, row.exists { row.tap() }
         XCTAssertTrue(app.textViews.firstMatch.waitForExistence(timeout: 10), "對話頁沒有輸入框")
     }
 
@@ -120,7 +120,7 @@ final class DetailTests: XCTestCase {
         XCTAssertTrue(app.any("還沒有對話").waitForExistence(timeout: 10), "沒有訊息時畫面空白")
         XCTAssertTrue(app.any("從下面打字開始").exists, "待命的空對話說明不對")
         // 直接打開（跟點推播通知同一條路）也要有標題列的名稱與狀態
-        XCTAssertTrue(app.navigationBars.staticTexts["notes"].exists, "直接打開時標題列沒有名稱")
+        XCTAssertEqual(app.navigationBars.staticTexts["detail-FAKE-IDLE"].label, "notes", "直接打開時標題列沒有名稱")
         shot(app, "empty")
     }
 }

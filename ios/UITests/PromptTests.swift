@@ -73,6 +73,34 @@ final class PromptTests: XCTestCase {
         waitSent("打的字送出") { $0.op == "write" && $0.text == "Render" }
         let log = try FakeBackend.log().filter { $0.id == "FAKE-ASK" && $0.op == "write" }.map { $0.text ?? "" }
         XCTAssertEqual(log, ["4", "Render"], "沒有先選 Type something")
+        // 送完要收鍵盤：下一題的選項可能跟這題一模一樣（這裡畫面沒換），還是要看得到
+        XCTAssertTrue(option(app, "Fly.io").waitForExistence(timeout: 10), "打字回答送出後選項被鍵盤收起來")
+    }
+
+    func testRefreshKeepsKeyboard() throws {
+        // 同一題只是重新整理（hook 事件每次都會觸發）：正在打字的鍵盤不能被收掉
+        let app = try open("FAKE-ASK")
+        let box = app.textViews.firstMatch
+        XCTAssertTrue(app.staticTexts["要部署到哪裡？"].waitForExistence(timeout: 10))
+        box.tap()
+        box.typeText("Ren")
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        // 畫面換成同一題（只差說明文字）＝觸發一次重新整理
+        try FakeBackend.setScreen("FAKE-ASK", """
+             ☐ 部署
+            要部署到哪裡？
+            ❯ 1. Fly.io (Recommended)
+                 便宜
+              2. 自己的 VPS
+              3. Vercel
+              4. Type something.
+            ────────────────────────────────────────
+              5. Chat about this
+            Enter to select · ↑/↓ to navigate · Esc to cancel
+            """)
+        sleep(3)
+        XCTAssertTrue(app.keyboards.firstMatch.exists, "同一題重新整理就把鍵盤收掉")
+        XCTAssertEqual(box.value as? String, "Ren")
     }
 
     func testMultiSelectToggleAndSubmit() throws {

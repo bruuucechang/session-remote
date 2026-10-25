@@ -2,7 +2,7 @@ import XCTest
 
 /// B5 實測：連真的筆電服務，在測試資料夾開一個真的 Claude session，從手機把每種互動做一次。
 /// 只由 tools/livetest.sh 帶 SR_LIVE_URL／SR_LIVE_TOKEN／SR_LIVE_DIR 進來才跑，平常的 uitest 一律略過。
-/// 安全：每一步動手之前都從 API 確認畫面上的 session 就是 SR_LIVE_DIR 那一個（使用者的 session 只能看）。
+/// 安全：sid 只取「cwd 是這次測試資料夾」的那一個，每一步動手之前都核對畫面上開著的就是 sid（使用者的 session 只能看）。
 final class LiveTests: XCTestCase {
     private let env = ProcessInfo.processInfo.environment
     private var url: String { env["SR_LIVE_URL"] ?? "" }
@@ -12,10 +12,12 @@ final class LiveTests: XCTestCase {
     private var sid = ""
 
     override func setUpWithError() throws {
-        try XCTSkipIf(url.isEmpty || token.isEmpty || dir.isEmpty, "沒帶 SR_LIVE_*：實測只由 tools/livetest.sh 跑")
-        // 測試資料夾一定要是 tools/livetest.sh 開的那種，碰到別的資料夾就不跑
-        XCTAssertTrue(dir.contains("/Projects/.uitest-sandbox/"), "SR_LIVE_DIR 不是測試資料夾：\(dir)")
         continueAfterFailure = false
+        try XCTSkipIf(url.isEmpty || token.isEmpty || dir.isEmpty, "沒帶 SR_LIVE_*：實測只由 tools/livetest.sh 跑")
+        // 測試資料夾一定要是 tools/livetest.sh 開的那種，碰到別的資料夾就不跑（斷言不會擋住測試主體，要丟錯）
+        guard dir.hasPrefix("/Users/"), dir.contains("/Projects/.uitest-sandbox/run-"), !dir.contains("/..") else {
+            throw NSError(domain: "Live", code: 1, userInfo: [NSLocalizedDescriptionKey: "SR_LIVE_DIR 不是測試資料夾：\(dir)"])
+        }
     }
 
     // MARK: 真的筆電服務
@@ -47,14 +49,9 @@ final class LiveTests: XCTestCase {
 
     private func detail() throws -> Detail { try get("api/sessions/\(sid)?limit=40&screen=false", as: Detail.self) }
 
-    /// 動手之前：這一頁一定是測試 session（標題列是測試資料夾的名字），不是就停
+    /// 動手之前：畫面上開著的一定是 sid 這一個（標題列帶著 detail-<id>），sid 又一定是測試資料夾開的，不是就停
     private func guardSandbox() throws {
-        let d = try detail()
-        XCTAssertEqual(d.cwd, dir, "對話頁不是測試 session，停手")
-        // 標題列是 session 名稱的專案那段：還沒取名時是資料夾名（run-…），取了名是「.uitest-sandbox｜…」
-        let name = (dir as NSString).lastPathComponent
-        let title = NSPredicate(format: "label BEGINSWITH %@ OR label BEGINSWITH %@", name, ".uitest-sandbox")
-        XCTAssertTrue(app.navigationBars.staticTexts.matching(title).firstMatch.exists, "標題列不是測試 session，停手")
+        XCTAssertTrue(app.navigationBars.staticTexts["detail-\(sid)"].exists, "畫面上不是這次的測試 session，停手")
     }
 
     /// 等某個條件成立（Claude 回應要時間）
@@ -81,14 +78,27 @@ final class LiveTests: XCTestCase {
         try guardSandbox()
         box.tap()
         box.typeText(text)
-        // 長字串剛打完時點送出偶爾沒反應（2026-10-26 真機一次）：送出成功會清空輸入框，沒清空而且還能按就再點一次
+        // 長字串剛打完時點送出偶爾沒反應（2026-10-26 真機一次）：只在「點了完全沒反應」時再點——
+        // 送出鈕沒變灰、輸入框沒清空，而且筆電那邊的畫面與對話都還沒有這段字（送到一半失敗的不重送）
         let send = app.buttons["送出"]
+        let head = String(text.prefix(12))
         for _ in 0..<3 {
+            try guardSandbox()
             send.tap()
-            let cleared = expectation(for: NSPredicate(format: "value == '' OR value == nil"), evaluatedWith: box)
-            if XCTWaiter.wait(for: [cleared], timeout: 5) == .completed || !send.isEnabled { return }
+            let reacted = expectation(for: NSPredicate { _, _ in
+                (box.value as? String ?? "").isEmpty || !send.isEnabled
+            }, evaluatedWith: nil)
+            if XCTWaiter.wait(for: [reacted], timeout: 5) == .completed { return }
+            if reachedLaptop(head) { return }
         }
         XCTFail("按了三次送出都沒送出去")
+    }
+
+    /// 筆電那邊已經有這段字（對話紀錄或終端機畫面上）
+    private func reachedLaptop(_ s: String) -> Bool {
+        struct S: Decodable { let screen: [String]?; let messages: [M] }
+        guard let d = try? get("api/sessions/\(sid)?limit=10", as: S.self) else { return true }  // 讀不到就當送了，不冒險重送
+        return d.messages.contains { $0.text.contains(s) } || (d.screen ?? []).contains { $0.contains(s) }
     }
 
     /// 這一輪做完：狀態回到做完或待命

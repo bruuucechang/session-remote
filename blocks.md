@@ -45,3 +45,5 @@
   同樣設定用 `claude -p` 實測三種寫法都會擋——差在哪還沒查）、Esc 中斷、關分頁
 - 實測抓到並修掉：送完字鍵盤還開著時下一題的選項被收起來（PromptTests/testNewPromptDismissesKeyboard，看過紅）
 - 實測看到、還沒查：關分頁第一次回「iTerm2：…Invalid index (-1719)」，再按一次才關掉（claude 已經結束、分頁位置變了？）
+- 審查提到、沒修（低）：讀 iTerm2 畫面偶爾失敗時後端回 `prompt: null`，下一次又有題目，app 會當成「新題目出現」把正在打字的鍵盤收掉；
+  要修就讓後端讀不到畫面時回 503、app 保留舊的 detail
