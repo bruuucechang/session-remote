@@ -293,7 +293,8 @@ struct SessionDetailView: View {
         }
         let options = p.options.filter { !isTypeRow($0) && !$0.label.hasPrefix("Chat about") }
         let current = PromptMatch(pending: d.pending, prompt: p)
-        let words = PromptWords(pending: d.pending, prompt: p, match: current, cwd: d.cwd)
+        let words = PromptWords(pending: d.pending, prompt: p, match: current, cwd: d.cwd,
+                                lastTool: messages.last.flatMap { $0.role == "tool" ? $0.tool : nil })
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: d.pending?.kind == "ask" ? "questionmark.bubble.fill" : "hand.raised.fill")
@@ -635,10 +636,12 @@ struct PromptWords {
     /// 權限提示：要用的工具（從通知「Claude needs your permission to use Bash」取出）
     let tool: String?
 
-    init(pending: Pending?, prompt: Prompt, match: PromptMatch, cwd: String) {
+    /// lastTool：對話最後一則是工具呼叫時的工具名。新版的通知只寫「Claude needs your permission」、
+    /// 沒寫是哪個工具（2026-10-26 v2.1.310 實測），這時用它
+    init(pending: Pending?, prompt: Prompt, match: PromptMatch, cwd: String, lastTool: String? = nil) {
         let message = pending?.message ?? ""
         let tool = message.range(of: #"permission to use (\S+)"#, options: .regularExpression)
-            .map { String(message[$0].split(separator: " ").last ?? "") }
+            .map { String(message[$0].split(separator: " ").last ?? "") } ?? lastTool
         if let review = prompt.review {
             kind = .review
             badge = "確認答案 · 共 \(review.count) 題"
@@ -664,7 +667,8 @@ struct PromptWords {
         } else if pending?.kind == "permission" {
             kind = .permission
             badge = "要你允許"
-            title = tool.map { "Claude 要用 \($0)，允許嗎？" } ?? (message.isEmpty ? "Claude 要你允許" : message)
+            title = tool.map { "Claude 要用 \($0)，允許嗎？" }
+                ?? (message.isEmpty || message.hasPrefix("Claude needs your permission") ? "Claude 要你允許，允許嗎？" : message)
         } else {
             kind = .other
             badge = "Claude 在等你"

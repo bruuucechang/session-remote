@@ -177,6 +177,16 @@ final class PromptTests: XCTestCase {
         waitSent("按允許送數字 1") { $0.op == "write" && $0.id == "FAKE-PERM" && $0.text == "1" }
     }
 
+    func testPermissionWithoutToolName() throws {
+        // 新版通知只寫「Claude needs your permission」：工具名要從對話最後一則工具呼叫拿（2026-10-26 v2.1.310 真機實測抓到）
+        let app = try open("FAKE-PERM2")
+        XCTAssertTrue(app.staticTexts["Claude 要用 Bash，允許嗎？"].waitForExistence(timeout: 10), "通知沒寫工具時標題不對")
+        XCTAssertFalse(app.any("Claude needs your permission").exists, "標題還是英文")
+        shot(app, "permission-rule")
+        app.buttons["允許"].tap()
+        waitSent("按允許送數字 1") { $0.op == "write" && $0.id == "FAKE-PERM2" && $0.text == "1" }
+    }
+
     func testPlanApprove() throws {
         let app = try open("FAKE-PLAN", scenario: "")
         XCTAssertTrue(app.any("計畫寫好了").waitForExistence(timeout: 10), "沒有計畫核准的標題")

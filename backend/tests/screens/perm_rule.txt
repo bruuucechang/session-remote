@@ -1,0 +1,15 @@
+❯ 用 Bash 執行 touch probe.txt，只做這件事。
+⏺ Creating empty probe.txt in working directory
+  ⎿  $ touch probe.txt
+────────────────────────────────────────────────────────────
+ Bash command
+ Create empty probe.txt in working directory
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ touch probe.txt
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Permission rule Bash(touch:*) requires confirmation for this command.
+ /permissions to update rules
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. No
+ Esc to cancel · Tab to amend

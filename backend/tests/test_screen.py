@@ -256,3 +256,10 @@ def test_uitest_multi_submit_moves():
     # 游標在番茄（第 2 行）：往下 3 行才到 Submit
     from app.services.actions import submit_moves
     assert submit_moves(screen.parse_prompt(_scr("multi_submit"))) == 3
+
+
+def test_permission_rule_prompt_v2_1_310():
+    # 2026-10-26 互動 claude 實測：ask 規則跳的權限框只有 Yes／No、沒有可以打字的那一項
+    p = screen.parse_prompt(_scr("perm_rule"))
+    assert [o["label"] for o in p["options"]] == ["Yes", "No"]
+    assert p["selected"] == "1" and p["type_key"] is None
