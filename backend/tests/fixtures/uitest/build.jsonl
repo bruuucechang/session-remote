@@ -1,0 +1,3 @@
+{"type":"custom-title","customTitle":"build｜清掉 build 重新建一次"}
+{"type":"user","uuid":"b-u1","timestamp":"2026-10-25T01:58:00Z","message":{"content":"清掉 build 重新建一次"}}
+{"type":"assistant","uuid":"b-a1","timestamp":"2026-10-25T01:59:00Z","message":{"content":[{"type":"text","text":"好，先清掉再建。"},{"type":"tool_use","id":"tu-b1","name":"Bash","input":{"command":"rm -rf build && npm run build","description":"清掉 build 重新建一次"}}]}}

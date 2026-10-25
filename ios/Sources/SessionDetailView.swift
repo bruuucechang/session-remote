@@ -284,18 +284,19 @@ struct SessionDetailView: View {
         }
         let options = p.options.filter { !isTypeRow($0) && !$0.label.hasPrefix("Chat about") }
         let current = PromptMatch(pending: d.pending, prompt: p)
+        let words = PromptWords(pending: d.pending, prompt: p, match: current, cwd: d.cwd)
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: d.pending?.kind == "ask" ? "questionmark.bubble.fill" : "hand.raised.fill")
-                Text(p.review != nil ? "確認答案 · 共 \(p.review!.count) 題" : current.badge ?? "Claude 在等你")
+                Text(words.badge)
                 Spacer()
             }
             .font(.caption.weight(.semibold))
             .foregroundStyle(.orange)
 
-            let title = p.review != nil ? "要送出這幾題的答案嗎？" : current.title ?? d.pending?.headline ?? "Claude 在等你選"
-            if inputFocused {
-                // 打字的時候只留兩行，把位置讓給輸入框
+            let title = words.title
+            if inputFocused && p.type_key != nil {
+                // 打字的時候只留兩行，把位置讓給輸入框（沒有可以打字的那一項時不收：打了也送不出去，選項要留著）
                 Text(title).font(.subheadline.weight(.semibold)).lineLimit(2)
             } else {
                 // 題目、確認摘要、選項放在同一個捲動區：題目再長都完整顯示，
@@ -305,6 +306,25 @@ struct SessionDetailView: View {
                         .font(.subheadline.weight(.semibold))
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
+                    // 權限提示：要你允許的那個工具呼叫（對話最後一則），點開看完整指令
+                    // 同一則回覆連發兩個同名工具時分不出問的是哪一個：不顯示，免得指錯
+                    if let tool = words.tool, let m = messages.last, m.role == "tool", m.tool == tool,
+                       !(messages.dropLast().last.map { $0.role == "tool" && $0.tool == tool } ?? false) {
+                        Button { openTool = m } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "terminal")
+                                Text(m.text.isEmpty ? tool : "\(tool)：\(m.text)").lineLimit(2)
+                                Spacer(minLength: 4)
+                                Image(systemName: "chevron.right").font(.caption2.weight(.semibold))
+                            }
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 10).padding(.vertical, 8)
+                            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("看 \(tool) 的完整內容")
+                    }
                     if let review = p.review {
                         VStack(alignment: .leading, spacing: 4) {
                             ForEach(review, id: \.self) { r in
@@ -317,6 +337,7 @@ struct SessionDetailView: View {
                         ForEach(options, id: \.key) { o in
                             OptionButton(
                                 option: o,
+                                text: words.label(o.label),
                                 description: current.description(for: o.label),
                                 selected: o.key == p.selected,
                                 disabled: sending
@@ -331,7 +352,7 @@ struct SessionDetailView: View {
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 .scrollIndicators(.visible)
-                .frame(height: min(max(optionsHeight, 1), max(screenHeight * 0.55, 300)))
+                .frame(height: min(max(optionsHeight, 1), max(screenHeight * 0.55, inputFocused ? 0 : 300)))
                 .onPreferenceChange(OptionsHeightKey.self) { optionsHeight = $0 }
 
                 if let submit = p.submit_key {
@@ -480,15 +501,17 @@ struct SessionDetailView: View {
 }
 
 /// 一個選項按鈕：標籤＋說明（說明從 hook 回報的題目來，畫面上只看得到標籤）。
+/// text 是顯示的字（Claude Code 自己的選單翻成中文）；按下去送的還是 option 原本的 key 與 label。
 private struct OptionButton: View {
     let option: PromptOption
+    let text: String
     let description: String?
     let selected: Bool
     let disabled: Bool
     let action: () -> Void
 
     var body: some View {
-        let (label, recommended) = Self.split(option.label)
+        let (label, recommended) = Self.split(text)
         Button(action: action) {
             HStack(alignment: .top, spacing: 10) {
                 if let checked = option.checked {
@@ -532,6 +555,9 @@ private struct OptionButton: View {
         .buttonStyle(.plain)
         .disabled(disabled)
         .opacity(disabled ? 0.5 : 1)
+        // 讀出來的順序：標籤、推薦、說明（不念左邊的編號圓圈）；複選題另外念勾了沒
+        .accessibilityLabel([label, recommended ? "推薦" : nil, description].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "，"))
+        .accessibilityValue(option.checked.map { $0 ? "已勾" : "沒勾" } ?? "")
     }
 
     static func split(_ label: String) -> (String, Bool) {
@@ -586,6 +612,87 @@ struct PromptMatch {
     private static func same(_ a: String, _ b: String) -> Bool {
         guard !a.isEmpty, !b.isEmpty else { return false }
         return a == b || (min(a.count, b.count) >= 6 && (a.hasPrefix(b) || b.hasPrefix(a)))
+    }
+}
+
+/// 題目卡的標頭、標題與選項顯示的字。選項題用 hook 回報的題目；權限提示、計畫核准、信任資料夾、
+/// 確認頁是 Claude Code 自己的選單，標籤固定是英文，認得的就翻成中文（認不得的照原文）。
+struct PromptWords {
+    enum Kind { case review, trust, plan, ask, permission, other }
+
+    let kind: Kind
+    let badge: String
+    let title: String
+    /// 權限提示：要用的工具（從通知「Claude needs your permission to use Bash」取出）
+    let tool: String?
+
+    init(pending: Pending?, prompt: Prompt, match: PromptMatch, cwd: String) {
+        let message = pending?.message ?? ""
+        let tool = message.range(of: #"permission to use (\S+)"#, options: .regularExpression)
+            .map { String(message[$0].split(separator: " ").last ?? "") }
+        if let review = prompt.review {
+            kind = .review
+            badge = "確認答案 · 共 \(review.count) 題"
+            title = "要送出這幾題的答案嗎？"
+        } else if pending?.kind != "ask",
+                  prompt.options.contains(where: { ["Yes, I trust this folder", "Yes, proceed"].contains($0.label) }),
+                  prompt.options.contains(where: { $0.label == "No, exit" }) {
+            // 剛開、還沒回報過的 session 卡在這裡：hook 還沒跑，只有畫面上的選項
+            kind = .trust
+            badge = "第一次在這個資料夾開 Claude"
+            let name = (cwd as NSString).lastPathComponent
+            title = name.isEmpty ? "要信任這個資料夾嗎？" : "要信任「\(name)」這個資料夾嗎？"
+        } else if pending?.plan == true
+                    // 權限通知可能把 hook 記的 plan 旗子蓋掉：畫面上是計畫核准的選項也算
+                    || prompt.options.contains(where: { $0.label == "Tell Claude what to change" || $0.label.hasPrefix("Yes, and use auto mode") }) {
+            kind = .plan
+            badge = "計畫核准"
+            title = message.isEmpty ? "計畫寫好了，要照著做嗎？" : message
+        } else if pending?.kind == "ask" {
+            kind = .ask
+            badge = match.badge ?? "選一個"
+            title = match.title ?? pending?.headline ?? "Claude 在等你選"
+        } else if pending?.kind == "permission" {
+            kind = .permission
+            badge = "要你允許"
+            title = tool.map { "Claude 要用 \($0)，允許嗎？" } ?? (message.isEmpty ? "Claude 要你允許" : message)
+        } else {
+            kind = .other
+            badge = "Claude 在等你"
+            title = pending?.headline ?? "Claude 在等你選"
+        }
+        self.tool = kind == .permission ? tool : nil
+    }
+
+    func label(_ raw: String) -> String {
+        // 權限提示最後一項帶著「(esc)」：手機上沒有 Esc 鍵的意思
+        let s = raw.hasSuffix(" (esc)") ? String(raw.dropLast(6)) : raw
+        switch kind {
+        case .review:
+            return ["Submit answers": "送出答案", "Cancel": "取消，回去改"][s] ?? s
+        case .trust:
+            return ["No, exit": "不信任，離開", "Yes, I trust this folder": "信任這個資料夾",
+                    "Yes, proceed": "信任，繼續"][s] ?? s
+        case .plan:
+            if let t = ["Yes, and use auto mode": "核准，接著自動做", "Yes, manually approve edits": "核准，每次改檔先問我",
+                        "Yes, and auto-accept edits": "核准，改檔不用問我", "Tell Claude what to change": "要改計畫（按了再打字）"][s] {
+                return t
+            }
+            return s
+        case .permission:
+            if s == "Yes" { return "允許" }
+            if s == "No" { return "不允許" }
+            if s.hasPrefix("No, and tell Claude") { return "不允許，告訴 Claude 怎麼做（按了再打字）" }
+            if s.hasPrefix("Yes, and don't ask again") {
+                // 後半段是規則（「for npm run build commands in …」），照原文留著
+                let rest = s.dropFirst("Yes, and don't ask again".count).trimmingCharacters(in: .whitespaces)
+                return rest.isEmpty ? "允許，之後不再問" : "允許，之後不再問：\(rest)"
+            }
+            if s.hasPrefix("Yes, allow all edits") { return "允許，這次 session 改檔都不再問" }
+            return s
+        case .ask, .other:
+            return s
+        }
     }
 }
 
