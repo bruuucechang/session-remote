@@ -102,6 +102,13 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
   `SR_NEW=1`（開新 session，加 `SR_DIR=<路徑>` 預選資料夾）、`SR_PAGE=30`（一頁幾則）、`SR_SCROLL=top`、`SR_DRAFT`／`SR_FOCUS=1`（輸入框）。
 - **開新 session 要有明顯的送出鈕**：以前點資料夾就直接開，填了第一句話之後鍵盤蓋住清單、使用者找不到哪裡送出。現在點資料夾只是選，按右上角「開始」才開（2026-10-25）。
 - **`simctl boot` 會把當下的 `SIMCTL_CHILD_*` 留在模擬器的系統環境裡**：用 `SIMCTL_CHILD_SR_NEW=1 tools/sim-shot.sh` 開機的模擬器，之後每次啟動 app（含 XCUITest）都帶著 SR_NEW=1、一打開就跳開新 session。`tools/uitest.sh --sim` 每次先重開模擬器（2026-10-25 實測）。
+- **UI 測試的假資料情境**：`FakeBackend.reset("many")`／`launchApp(scenario: "empty")` 換成 `backend/tests/fixtures/uitest/scenario-<名字>.json`；
+  scenario 可寫 `starred`、`close_fails`（關分頁丟錯）、`quota`（重置時間寫 `"+26h"`）。假的開新 session 會真的多一列。
+  `SR_FIRSTRUN=1` 當成沒設定過、走第一次配對（存的東西不寫進手機）。
+- **app 要宣告繁中（`CFBundleDevelopmentRegion: zh-Hant`）**：手機語言是英文時，沒宣告的話系統元件（確認框的取消、搜尋沒結果、網路錯誤訊息）都講英文。
+  網路錯誤另外在 `API.describe` 翻成中文（2026-10-25 真機實測）。
+- **XCUITest 點靠右對齊的輸入框要點最右邊**：點正中間游標落在最前面，刪除字元刪不到東西（SecureField 看起來像沒反應）。
+  整列的字合在 NavigationLink 按鈕的 label 裡、分隔符號跟著語言（繁中是「、」），用 `label BEGINSWITH` 找。
 - 信任資料夾這類**沒編號的選單**只能用方向鍵：選項 key 是 `pick:N`，`actions._pick` 換算成 ↑↓＋Enter。
 
 ## 做過但結論是「不做」的

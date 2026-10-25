@@ -8,11 +8,18 @@ scenario.json 的形狀：
   {"sessions": [{"id", "tty", "pid", "cwd", "config_dir", "name",
                  "screen": "相對 scenario 的畫面文字檔（可省）",
                  "record": {sessions.json 裡那一筆：status、pending、activity…},
-                 "transcript": "相對 scenario 的 .jsonl（可省）"}]}
+                 "transcript": "相對 scenario 的 .jsonl（可省）",
+                 "starred": true（可省）, "close_fails": true（可省：關分頁丟 ItermError）}],
+   "quota": {"rows": [agent-quota widget.json 的列；*ResetsAt 可寫 "+26h"＝從現在算起]}（可省＝沒有額度卡）}
+
+別的情境放在同一個資料夾的 scenario-<名字>.json，`reset("<名字>")` 換過去。
 """
 
 import json
+import re
+import shlex
 import threading
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from .. import config
@@ -26,12 +33,30 @@ def _base() -> Path:
 
 
 def _load() -> dict:
-    return json.loads(Path(config.FAKE).read_text())
+    return json.loads(Path(_state.get("file") or config.FAKE).read_text())
 
 
-def reset() -> None:
-    """回到 scenario 的初始狀態：分頁、畫面、送字紀錄全部重來。"""
+def _write_quota(q: dict | None) -> None:
+    if q is None:
+        config.QUOTA_FILE.unlink(missing_ok=True)
+        return
+    now = datetime.now(timezone.utc)
+
+    def at(v):
+        m = re.fullmatch(r"\+(\d+)h", str(v))
+        return (now + timedelta(hours=int(m[1]))).isoformat() if m else v
+
+    rows = [{k: at(v) if k.endswith("ResetsAt") else v for k, v in r.items()} for r in q.get("rows", [])]
+    config.QUOTA_FILE.write_text(json.dumps({"generatedAt": now.isoformat(), "rows": rows}))
+
+
+def reset(name: str = "") -> None:
+    """回到 scenario 的初始狀態：分頁、畫面、送字紀錄全部重來。name 給了就換成 scenario-<name>.json。"""
+    if name and not re.fullmatch(r"[a-z0-9-]+", name):
+        raise ValueError(f"情境名稱只能是小寫英數與 -：{name}")
+    _state["file"] = str(_base() / f"scenario-{name}.json") if name else config.FAKE
     sc = _load()
+    _write_quota(sc.get("quota"))
     with _lock:
         _state["sessions"] = {s["id"]: dict(s) for s in sc.get("sessions", [])}
         _state["screens"] = {
@@ -54,6 +79,10 @@ def records() -> dict:
             rec["transcript_path"] = str(_base() / s["transcript"])
         out[s["tty"]] = rec
     return out
+
+
+def starred() -> list[str]:
+    return [s["id"] for s in _load().get("sessions", []) if s.get("starred")]
 
 
 def log() -> list[dict]:
@@ -112,16 +141,27 @@ def write_seq(session_id: str, seq: str) -> None:
 
 
 def close(session_id: str) -> None:
+    from .iterm import ItermError
     _need(session_id)
+    if _state["sessions"][session_id].get("close_fails"):
+        raise ItermError("假資料：這個分頁關不掉")
     with _lock:
         _state["sessions"].pop(session_id, None)
     _add({"op": "close", "id": session_id})
 
 
 def new_tab(command: str) -> str:
+    """記下指令，並真的多一個分頁（列表上看得到、點得進去），資料夾與帳號照指令裡的 cd 與 CLAUDE_CONFIG_DIR。"""
+    words = shlex.split(command)
+    cwd = words[words.index("cd") + 1] if "cd" in words else ""
+    cfg = next((w.split("=", 1)[1] for w in words if w.startswith("CLAUDE_CONFIG_DIR=")), "")
     with _lock:
-        sid = f"FAKE-NEW-{_state['next']}"
+        n = _state["next"]
         _state["next"] += 1
+        sid = f"FAKE-NEW-{n}"
+        _state["sessions"][sid] = {"id": sid, "tty": f"/dev/fakenew{n}", "pid": 910000 + n, "cwd": cwd,
+                                   "config_dir": cfg, "name": Path(cwd).name}
+        _state["screens"][sid] = ""
     _add({"op": "new_tab", "id": sid, "command": command})
     return sid
 
