@@ -35,7 +35,7 @@ BE=$!
       ps -o pid=,command= -p "$p" >>"$OUT/foreign.txt"
     done
     sleep 2
-  done ) &
+  done ) >/dev/null 2>&1 &
 WATCH=$!
 trap 'kill $BE $WATCH 2>/dev/null; wait $BE 2>/dev/null; rm -rf "$OUT/fake-data"' EXIT
 for _ in $(seq 40); do kill -0 $BE 2>/dev/null || break; curl -sf "localhost:$PORT/health" >/dev/null && break; sleep 0.25; done

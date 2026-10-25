@@ -10,7 +10,7 @@ final class DetailTests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 15), "列表沒有 \(name)")
         row.tap()
         // 列表剛好在重新整理時，第一下會被吃掉：沒進去就再點一次
-        if !app.textViews.firstMatch.waitForExistence(timeout: 5), row.exists { row.tap() }
+        if !app.textViews.firstMatch.waitForExistence(timeout: 5), !app.navigationBars.staticTexts[name].exists, row.exists { row.tap() }
         XCTAssertTrue(app.textViews.firstMatch.waitForExistence(timeout: 10), "對話頁沒有輸入框")
     }
 
