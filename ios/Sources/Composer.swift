@@ -57,11 +57,13 @@ struct Composer: View {
 
             Button(action: onSend) {
                 ZStack {
-                    Circle().fill(canSend ? Color.accentColor : Color(.systemGray4))
+                    // 不能送時用淡底＋灰箭頭：深色模式下 systemGray4 配白箭頭看起來還是可以按
+                    Circle().fill(canSend || sending ? Color.accentColor : Color(.tertiarySystemFill))
                     if sending {
                         ProgressView().tint(.white)
                     } else {
-                        Image(systemName: "arrow.up").font(.body.weight(.bold)).foregroundStyle(.white)
+                        Image(systemName: "arrow.up").font(.body.weight(.bold))
+                            .foregroundStyle(canSend ? Color.white : Color(.tertiaryLabel))
                     }
                 }
                 .frame(width: 38, height: 38)

@@ -93,8 +93,9 @@ struct ToolGroupView: View {
                 Button {
                     withAnimation(.snappy) { expanded.toggle() }
                 } label: {
-                    Label(expanded ? "收起" : "共 \(tools.count) 個工具呼叫", systemImage: expanded ? "chevron.up" : "chevron.down")
+                    Label(expanded ? "收起" : "共 \(tools.count) 個工具呼叫：\(summary)", systemImage: expanded ? "chevron.up" : "chevron.down")
                         .font(.caption2.weight(.medium))
+                        .lineLimit(1)
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
@@ -103,6 +104,17 @@ struct ToolGroupView: View {
         .padding(.horizontal, 10).padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    /// 收起來時只看得到最後一個，摘要列出全部用了哪些工具：「Bash ×2、Edit」
+    private var summary: String {
+        var order: [String] = []
+        var count: [String: Int] = [:]
+        for t in tools.map({ $0.tool ?? "工具" }) {
+            if count[t] == nil { order.append(t) }
+            count[t, default: 0] += 1
+        }
+        return order.map { count[$0]! > 1 ? "\($0) ×\(count[$0]!)" : $0 }.joined(separator: "、")
     }
 
     private func row(_ m: Message) -> some View {

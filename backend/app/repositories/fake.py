@@ -9,7 +9,8 @@ scenario.json 的形狀：
                  "screen": "相對 scenario 的畫面文字檔（可省）",
                  "record": {sessions.json 裡那一筆：status、pending、activity…},
                  "transcript": "相對 scenario 的 .jsonl（可省）",
-                 "starred": true（可省）, "close_fails": true（可省：關分頁丟 ItermError）}],
+                 "starred": true（可省）, "close_fails": true（可省：關分頁丟 ItermError）,
+                 "write_fails": true（可省：送字丟 ItermError）}],
    "quota": {"rows": [agent-quota widget.json 的列；*ResetsAt 可寫 "+26h"＝從現在算起]}（可省＝沒有額度卡）}
 
 別的情境放在同一個資料夾的 scenario-<名字>.json，`reset("<名字>")` 換過去。
@@ -131,7 +132,10 @@ def contents(session_id: str) -> str:
 
 
 def write(session_id: str, text: str) -> None:
+    from .iterm import ItermError
     _need(session_id)
+    if _state["sessions"][session_id].get("write_fails"):
+        raise ItermError("假資料：送字失敗")
     _add({"op": "write", "id": session_id, "text": text})
 
 
