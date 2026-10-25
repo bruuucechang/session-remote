@@ -9,7 +9,7 @@
 - 碰：`backend/app/`（假資料模式，只加 repositories 層的替身）、`ios/project.yml`（加 `SessionRemoteUITests` target）、`ios/UITests/`、`tools/uitest.sh`
 - 不做：修任何畫面 bug（B2 以後）；測試 session 實測（B5）
 
-## B2 列表、開新 session、設定、配對  [未開始]
+## B2 列表、開新 session、設定、配對  [進行中]
 - 目標：這幾頁 bug 修掉、層級整理（要處理的在最上面、空／載入／錯誤狀態齊）、各有 UI 測試
 - 驗收：`tools/uitest.sh` 真機全綠（含這塊新增的測試，各看過紅一次）；每種狀態截圖目視過
 - 碰：`ios/Sources/SessionListView.swift`、`NewSessionView.swift`、`SettingsView.swift`、`SessionRemoteApp.swift`、`ios/UITests/`
