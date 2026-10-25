@@ -5,7 +5,8 @@
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FIX="$DIR/backend/tests/fixtures/uitest"
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/sr-uitest.XXXXXX")"
+# tools/uitest.sh 會傳 SR_FAKE_TMP 進來並在結束時清掉；直接跑時自己開一個暫存目錄
+TMP="${SR_FAKE_TMP:-$(mktemp -d "${TMPDIR:-/tmp}/sr-uitest.XXXXXX")}"
 mkdir -p "$TMP/data" "$TMP/context" "$TMP/Projects"/{hello,ledger,atlas,notes}
 export SR_FAKE="$FIX/scenario.json" SESSION_REMOTE_DATA="$TMP/data" SESSION_REMOTE_TOKEN=uitest \
   ACCOUNTS_FILE="$FIX/accounts.json" QUOTA_FILE="$TMP/none.json" CONTEXT_DIR="$TMP/context" \

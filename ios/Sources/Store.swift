@@ -47,6 +47,8 @@ final class Store: ObservableObject {
     func draft(_ id: String) -> String { drafts[id] ?? "" }
 
     func setDraft(_ id: String, _ text: String) {
+        // 測試模式的草稿不寫進手機的設定（假資料的 session id 留在那裡只是垃圾）
+        if overridden { return }
         if text.isEmpty { drafts[id] = nil } else { drafts[id] = text }
         UserDefaults.standard.set(drafts, forKey: "drafts")
     }
@@ -99,7 +101,8 @@ final class Store: ObservableObject {
             loaded = true
             // app 圖示的紅點＝等你回答的數量（app 不在前景時由筆電推播的 badge 更新）
             let waiting = sessions.filter { $0.status == "waiting" }.count
-            try? await UNUserNotificationCenter.current().setBadgeCount(waiting)
+            // 測試模式不動：假資料的數字會留在真機的 app 圖示上
+            if !overridden { try? await UNUserNotificationCenter.current().setBadgeCount(waiting) }
             LiveActivityController.shared.sync(sessions, api: api)
             WidgetCenter.shared.reloadAllTimelines()
             if Date().timeIntervalSince(quotaFetched) > 60 {
