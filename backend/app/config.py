@@ -46,6 +46,9 @@ QUOTA_FILE = Path(os.environ.get("QUOTA_FILE", str(HOME / "Library/Application S
 CONTEXT_DIR = Path(os.environ.get("CONTEXT_DIR", str(HOME / ".claude/state/context")))
 UPLOAD_DIR = DATA_DIR / "uploads"
 
+# UI 測試用的假資料模式：指向 scenario.json 時 iTerm2 與程序掃描換成替身（repositories/fake.py）
+FAKE = os.environ.get("SR_FAKE", "")
+
 CORS_ORIGINS = [
     f"http://localhost:{WEB_PORT}",
     f"http://127.0.0.1:{WEB_PORT}",

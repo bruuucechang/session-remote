@@ -121,6 +121,16 @@ def apply_hook(event: str, tty: str | None, pid: int | None, config_dir: str, pa
         notify.session_changed(tty)
 
 
+def reload_state(records: dict) -> None:
+    """整份換掉 hook 狀態（假資料模式重來時用）。"""
+    global _scan_cache
+    with _lock:
+        _state["sessions"] = records
+        _scan_cache = (0.0, [])
+        _save()
+    events.bump()
+
+
 def mark_idle(tty: str) -> None:
     with _lock:
         rec = _state["sessions"].get(tty)

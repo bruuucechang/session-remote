@@ -1,0 +1,3 @@
+{"type":"custom-title","customTitle":"hello｜建一個 hello.txt"}
+{"type":"user","uuid":"p-u1","timestamp":"2026-10-25T01:48:00Z","message":{"content":"在目前資料夾建一個 hello.txt，先給我計畫"}}
+{"type":"assistant","uuid":"p-a1","timestamp":"2026-10-25T01:49:00Z","message":{"content":[{"type":"text","text":"計畫寫好了：在目前資料夾建立 hello.txt，內容一行 hello。"}]}}

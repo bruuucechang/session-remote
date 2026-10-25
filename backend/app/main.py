@@ -47,3 +47,7 @@ def health():
 
 app.include_router(hook.router)
 app.include_router(api.router)
+
+if config.FAKE:
+    from .routers import fake
+    app.include_router(fake.router)

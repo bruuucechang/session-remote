@@ -30,6 +30,7 @@ tools/install-agent.sh            # 常駐服務（launchd：com.bruce.session-r
 cd backend && .venv/bin/pytest    # 後端單元測試
 tools/install-ios.sh [--wait]     # 編譯並裝到 iPhone（--wait：等手機回到網路再裝）
 tools/sim-shot.sh out.png [分頁id] # 無頭模擬器跑 app 並截圖（不開 Simulator 視窗）
+tools/uitest.sh [--sim]           # XCUITest：起假資料後端（tools/fake-backend.sh，5390）→ 真機（預設，手機要解鎖）或模擬器 → 截圖在 ios/build/uitest/
 backend/.venv/bin/python tools/pair.py   # 印配對 QR code（手機相機掃）
 ccmove                            # 搬家指令（symlink 在 ~/.local/bin）；iTerm2 四宮格 quad-iterm 已搬到 ~/Projects/termkit
 ```
@@ -100,6 +101,7 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
   其他直接打開某一頁的開關：`SR_TOOL=<訊息 id 或工具名>`（工具詳情）、`SR_SEARCH=<字>`（對話搜尋）、
   `SR_NEW=1`（開新 session，加 `SR_DIR=<路徑>` 預選資料夾）、`SR_PAGE=30`（一頁幾則）、`SR_SCROLL=top`、`SR_DRAFT`／`SR_FOCUS=1`（輸入框）。
 - **開新 session 要有明顯的送出鈕**：以前點資料夾就直接開，填了第一句話之後鍵盤蓋住清單、使用者找不到哪裡送出。現在點資料夾只是選，按右上角「開始」才開（2026-10-25）。
+- **`simctl boot` 會把當下的 `SIMCTL_CHILD_*` 留在模擬器的系統環境裡**：用 `SIMCTL_CHILD_SR_NEW=1 tools/sim-shot.sh` 開機的模擬器，之後每次啟動 app（含 XCUITest）都帶著 SR_NEW=1、一打開就跳開新 session。`tools/uitest.sh --sim` 每次先重開模擬器（2026-10-25 實測）。
 - 信任資料夾這類**沒編號的選單**只能用方向鍵：選項 key 是 `pick:N`，`actions._pick` 換算成 ↑↓＋Enter。
 
 ## 做過但結論是「不做」的

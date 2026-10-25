@@ -13,6 +13,8 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from .. import config
+
 TIMEOUT = 10
 # 啟動會開視窗的程式又不搶畫面（見 skills 的 tools/bgrun 檔頭）
 BGRUN = Path.home() / ".claude/skills/home/claude/tools/bgrun"
@@ -173,3 +175,16 @@ def _restore(bundle_id: str) -> None:
                        capture_output=True, timeout=5)
     except Exception:
         pass
+
+
+# 假資料模式：整組換成替身（UI 測試用，不碰真的 iTerm2／程序）
+if config.FAKE:
+    from . import fake as _fake
+    is_running = _fake.is_running  # noqa: F811
+    list_sessions = _fake.list_sessions  # noqa: F811
+    write = _fake.write  # noqa: F811
+    write_ascii = _fake.write_ascii  # noqa: F811
+    write_seq = _fake.write_seq  # noqa: F811
+    close = _fake.close  # noqa: F811
+    contents = _fake.contents  # noqa: F811
+    new_tab = _fake.new_tab  # noqa: F811
