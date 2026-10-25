@@ -307,7 +307,9 @@ struct SessionDetailView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                     // 權限提示：要你允許的那個工具呼叫（對話最後一則），點開看完整指令
-                    if let tool = words.tool, let m = messages.last, m.role == "tool", m.tool == tool {
+                    // 同一則回覆連發兩個同名工具時分不出問的是哪一個：不顯示，免得指錯
+                    if let tool = words.tool, let m = messages.last, m.role == "tool", m.tool == tool,
+                       !(messages.dropLast().last.map { $0.role == "tool" && $0.tool == tool } ?? false) {
                         Button { openTool = m } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "terminal")
@@ -350,7 +352,7 @@ struct SessionDetailView: View {
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 .scrollIndicators(.visible)
-                .frame(height: min(max(optionsHeight, 1), max(screenHeight * 0.55, 300)))
+                .frame(height: min(max(optionsHeight, 1), max(screenHeight * 0.55, inputFocused ? 0 : 300)))
                 .onPreferenceChange(OptionsHeightKey.self) { optionsHeight = $0 }
 
                 if let submit = p.submit_key {
@@ -632,13 +634,17 @@ struct PromptWords {
             kind = .review
             badge = "確認答案 · 共 \(review.count) 題"
             title = "要送出這幾題的答案嗎？"
-        } else if prompt.options.contains(where: { $0.label.localizedCaseInsensitiveContains("trust this folder") }) {
+        } else if pending?.kind != "ask",
+                  prompt.options.contains(where: { ["Yes, I trust this folder", "Yes, proceed"].contains($0.label) }),
+                  prompt.options.contains(where: { $0.label == "No, exit" }) {
             // 剛開、還沒回報過的 session 卡在這裡：hook 還沒跑，只有畫面上的選項
             kind = .trust
             badge = "第一次在這個資料夾開 Claude"
             let name = (cwd as NSString).lastPathComponent
             title = name.isEmpty ? "要信任這個資料夾嗎？" : "要信任「\(name)」這個資料夾嗎？"
-        } else if pending?.plan == true {
+        } else if pending?.plan == true
+                    // 權限通知可能把 hook 記的 plan 旗子蓋掉：畫面上是計畫核准的選項也算
+                    || prompt.options.contains(where: { $0.label == "Tell Claude what to change" || $0.label.hasPrefix("Yes, and use auto mode") }) {
             kind = .plan
             badge = "計畫核准"
             title = message.isEmpty ? "計畫寫好了，要照著做嗎？" : message

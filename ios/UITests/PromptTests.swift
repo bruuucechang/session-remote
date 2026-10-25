@@ -104,21 +104,21 @@ final class PromptTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["→ 起司, 洋蔥"].exists, "確認頁沒列出答案")
         XCTAssertTrue(option(app, "取消，回去改").exists, "確認頁的取消沒翻成中文")
         shot(app, "review")
-        option(app, "送出答案").tap()
-        waitSent("按送出答案送數字 1") { $0.op == "write" && $0.id == "FAKE-REVIEW" && $0.text == "1" }
         // 確認頁沒有可以打字的那一項：打的字會被吃掉，不給送；選項也不能因為叫出鍵盤就收起來
+        // （要在按選項之前檢查：按完之後有一小段時間本來就不能送）
         let box = app.textViews.firstMatch
         box.tap()
         box.typeText("好")
         XCTAssertFalse(app.buttons["送出"].isEnabled, "確認頁還能從輸入框送字")
         XCTAssertTrue(option(app, "送出答案").exists, "點了輸入框，確認頁的選項就不見了")
+        option(app, "送出答案").tap()
+        waitSent("按送出答案送數字 1") { $0.op == "write" && $0.id == "FAKE-REVIEW" && $0.text == "1" }
     }
 
     func testPermissionPrompt() throws {
         let app = try open("FAKE-PERM")
         XCTAssertTrue(app.staticTexts["Claude 要用 Bash，允許嗎？"].waitForExistence(timeout: 10), "權限提示沒寫是哪個工具")
-        XCTAssertTrue(option(app, "不允許，告訴 Claude").exists, "拒絕並說明的那一項要是按鈕")
-        XCTAssertFalse(app.any("(esc)").exists, "選項還帶著 (esc)")
+        XCTAssertEqual(option(app, "不允許，告訴 Claude").label, "不允許，告訴 Claude 怎麼做（按了再打字）", "拒絕並說明的那一項要是按鈕")
         shot(app, "permission")
         // 點工具那一列看完整指令
         app.buttons["看 Bash 的完整內容"].tap()
