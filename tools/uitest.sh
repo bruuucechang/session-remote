@@ -28,7 +28,16 @@ OUT="$DIR/ios/build/uitest/$(date +%Y%m%d-%H%M%S)"; mkdir -p "$OUT/shots"
 lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null && { echo "✗ 埠 $PORT 已被佔用：lsof -nP -iTCP:$PORT -sTCP:LISTEN"; exit 1; }
 SR_FAKE_TMP="$OUT/fake-data" FAKE_PORT=$PORT "$DIR/tools/fake-backend.sh" >"$OUT/backend.log" 2>&1 &
 BE=$!
-trap 'kill $BE 2>/dev/null; wait $BE 2>/dev/null; rm -rf "$OUT/fake-data"' EXIT
+# 跑的期間有別的程序也綁上這個埠（例如別的 session 跑 uvicorn --port 5390，綁 127.0.0.1 會搶走本機的請求），
+# 記下來最後警告：症狀是 app 拿到「Not Found」、假後端卻沒收到請求（2026-10-25 模擬器撞過）
+( while kill -0 $BE 2>/dev/null; do
+    for p in $(lsof -tnP -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null | grep -vx "$BE"); do
+      ps -o pid=,command= -p "$p" >>"$OUT/foreign.txt"
+    done
+    sleep 2
+  done ) &
+WATCH=$!
+trap 'kill $BE $WATCH 2>/dev/null; wait $BE 2>/dev/null; rm -rf "$OUT/fake-data"' EXIT
 for _ in $(seq 40); do kill -0 $BE 2>/dev/null || break; curl -sf "localhost:$PORT/health" >/dev/null && break; sleep 0.25; done
 kill -0 $BE 2>/dev/null && curl -sf "localhost:$PORT/health" >/dev/null || { echo "✗ 假資料後端起不來："; tail -5 "$OUT/backend.log"; exit 1; }
 
@@ -57,6 +66,7 @@ for t in m:
         if os.path.exists(src):
             os.rename(src, os.path.join(d, f"{name}-{human}{ext}"))
 PY
+[ -s "$OUT/foreign.txt" ] && { echo "⚠ 跑的期間有別的程序在聽 $PORT（結果可能被它搶走）："; sort -u "$OUT/foreign.txt"; }
 echo "截圖：$OUT/shots"
 [ $RC = 0 ] && echo "✓ UI 測試全過" || echo "✗ UI 測試失敗（$OUT/xcodebuild.log）"
 exit $RC

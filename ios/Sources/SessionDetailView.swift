@@ -83,12 +83,14 @@ struct SessionDetailView: View {
             .defaultScrollAnchor(.bottom)
             .overlay {
                 // 剛開的 session 還沒有任何訊息：講清楚是還沒開始，不是載入壞了
-                if let d = detail, messages.isEmpty, d.prompt == nil {
+                if let d = detail, messages.isEmpty, d.prompt == nil, !showScreen {
                     ContentUnavailableView {
                         Label("還沒有對話", systemImage: "bubble.left.and.bubble.right")
                     } description: {
                         Text(d.status == "working" ? "Claude 在工作，還沒有訊息。"
-                             : ["waiting", "done", "idle"].contains(d.status) ? "從下面打字開始。"
+                             // waiting 卻沒抓到題目卡（讀不到畫面）：打字可能被選單吃掉，叫他先看畫面
+                             : d.status == "waiting" ? "Claude 在等你回答，從右上角打開終端機畫面看看。"
+                             : ["done", "idle"].contains(d.status) ? "從下面打字開始。"
                              : "Claude 正在啟動，開好之後從下面打字。")
                     }
                 }
@@ -118,19 +120,25 @@ struct SessionDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
+                // 對話還沒抓回來時先用列表那一筆：推播／小工具在 app 剛開時直接推進來，
+                // 標題列偶爾漏掉之後的更新、整條空白（模擬器連跑 5 次 1 次，2026-10-25）
+                let name = detail?.name ?? listed?.name
+                let status = detail?.status ?? listed?.status
+                let account = detail?.account ?? listed?.account
+                let ctx = detail?.context_pct ?? listed?.context_pct
                 VStack(spacing: 1) {
                     HStack(spacing: 4) {
-                        if detail?.starred == true {
+                        if (detail?.starred ?? listed?.starred) == true {
                             Image(systemName: "star.fill").font(.caption2).foregroundStyle(.yellow)
                         }
-                        Text(detail.map { SessionName($0.name).project } ?? "")
+                        Text(name.map { SessionName($0).project } ?? "")
                             .font(.subheadline.weight(.semibold)).lineLimit(1)
                     }
-                    if let d = detail {
+                    if let status, let account {
                         HStack(spacing: 4) {
-                            Circle().fill(Status.color(d.status)).frame(width: 6, height: 6)
-                            Text("\(Status.label(d.status)) · \(d.account.id ?? d.account.label ?? "")"
-                                 + (d.context_pct.map { " · ctx \($0)%" } ?? ""))
+                            Circle().fill(Status.color(status)).frame(width: 6, height: 6)
+                            Text("\(Status.label(status)) · \(account.id ?? account.label ?? "")"
+                                 + (ctx.map { " · ctx \($0)%" } ?? ""))
                         }
                         .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                     }
@@ -199,6 +207,9 @@ struct SessionDetailView: View {
         }
         #endif
     }
+
+    /// 列表上的這一筆（標題列在對話抓回來之前先用）
+    private var listed: SessionSummary? { store.sessions.first { $0.id == sessionID } }
 
     // MARK: 底部操作區
 
