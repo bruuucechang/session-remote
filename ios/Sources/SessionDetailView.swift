@@ -115,6 +115,11 @@ struct SessionDetailView: View {
             .onChange(of: inputFocused) { _, f in
                 if f { withAnimation { proxy.scrollTo("bottom", anchor: .bottom) } }
             }
+            // 新的一題出現就收鍵盤：送完字鍵盤還開著的話題目卡只留兩行，選項整個看不到（2026-10-26 真機實測）。
+            // 只看「沒題目 → 有題目」；從題目裡打字送出的情況在送出那裡收（下一題選項可能跟這題一模一樣）
+            .onChange(of: detail?.prompt == nil) { wasNone, isNone in
+                if wasNone, !isNone, inputFocused { inputFocused = false }
+            }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { controls }
         .navigationBarTitleDisplayMode(.inline)
@@ -133,6 +138,8 @@ struct SessionDetailView: View {
                         }
                         Text(name.map { SessionName($0).project } ?? "")
                             .font(.subheadline.weight(.semibold)).lineLimit(1)
+                            // UI 測試用：核對畫面上開著的是哪一個 session（真機實測只准對測試 session 動手）
+                            .accessibilityIdentifier("detail-\(sessionID)")
                     }
                     if let status, let account {
                         HStack(spacing: 4) {
@@ -265,7 +272,9 @@ struct SessionDetailView: View {
                 focus: $inputFocused
             ) {
                 let t = text
-                act { try await $0.reply(sessionID, text: t); text = "" }
+                // 在題目卡上打字回答：送出後收鍵盤，下一題的選項才看得到
+                let hadPrompt = detail?.prompt != nil
+                act { try await $0.reply(sessionID, text: t); text = ""; if hadPrompt { inputFocused = false } }
             }
             }
         }
