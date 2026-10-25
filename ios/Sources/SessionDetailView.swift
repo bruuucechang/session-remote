@@ -115,6 +115,10 @@ struct SessionDetailView: View {
             .onChange(of: inputFocused) { _, f in
                 if f { withAnimation { proxy.scrollTo("bottom", anchor: .bottom) } }
             }
+            // 新的一題出現（或換到下一題）就收鍵盤：送完字鍵盤還開著的話題目卡只留兩行，選項整個看不到（2026-10-25 真機實測）
+            .onChange(of: detail?.prompt?.options.map(\.label)) { old, new in
+                if new != nil, old != new, inputFocused { inputFocused = false }
+            }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { controls }
         .navigationBarTitleDisplayMode(.inline)

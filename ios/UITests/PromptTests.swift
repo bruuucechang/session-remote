@@ -25,6 +25,27 @@ final class PromptTests: XCTestCase {
         wait(for: [e], timeout: 10)
     }
 
+    func testNewPromptDismissesKeyboard() throws {
+        // 送完字鍵盤還開著、下一題才來：選項不能被「打字中只留兩行」藏起來（2026-10-25 真機實測抓到）
+        let app = try launchApp(["SR_OPEN": "FAKE-DONE"])
+        let box = app.textViews.firstMatch
+        XCTAssertTrue(box.waitForExistence(timeout: 15))
+        box.tap()
+        box.typeText("等一下")
+        try FakeBackend.setScreen("FAKE-DONE", """
+             ☐ 部署
+            要部署到哪裡？
+            ❯ 1. Fly.io (Recommended)
+              2. 自己的 VPS
+              3. Type something.
+            ────────────────────────────────────────
+              4. Chat about this
+            Enter to select · ↑/↓ to navigate · Esc to cancel
+            """)
+        XCTAssertTrue(option(app, "Fly.io").waitForExistence(timeout: 10), "新題目來了，選項卻被鍵盤收起來")
+        shot(app, "new-prompt")
+    }
+
     func testSingleChoice() throws {
         let app = try open("FAKE-ASK")
         XCTAssertTrue(app.staticTexts["要部署到哪裡？"].waitForExistence(timeout: 10), "沒有題目")

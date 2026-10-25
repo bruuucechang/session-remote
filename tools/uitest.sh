@@ -66,7 +66,7 @@ for t in m:
         if os.path.exists(src):
             os.rename(src, os.path.join(d, f"{name}-{human}{ext}"))
 PY
-[ -s "$OUT/foreign.txt" ] && { echo "⚠ 跑的期間有別的程序在聽 $PORT（結果可能被它搶走）："; sort -u "$OUT/foreign.txt"; }
+[ -s "$OUT/foreign.txt" ] && { echo "⚠ 跑的期間有別的程序在聽 ${PORT}（結果可能被它搶走）："; sort -u "$OUT/foreign.txt"; }
 echo "截圖：$OUT/shots"
 [ $RC = 0 ] && echo "✓ UI 測試全過" || echo "✗ UI 測試失敗（$OUT/xcodebuild.log）"
 exit $RC
