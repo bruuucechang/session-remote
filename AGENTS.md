@@ -109,6 +109,7 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
   網路錯誤另外在 `API.describe` 翻成中文（2026-10-25 真機實測）。
 - **XCUITest 點靠右對齊的輸入框要點最右邊**：點正中間游標落在最前面，刪除字元刪不到東西（SecureField 看起來像沒反應）。
   整列的字合在 NavigationLink 按鈕的 label 裡、分隔符號跟著語言（繁中是「、」），用 `label BEGINSWITH` 找。
+- **XCUITest 找文字要限定在哪一塊**：對話搜尋的結果字在後面的對話裡也有，`app.any(...)` 會找到底下那則訊息、搜尋壞了也過；用 `app.cells.containing(...)`（2026-10-25）。
 - 信任資料夾這類**沒編號的選單**只能用方向鍵：選項 key 是 `pick:N`，`actions._pick` 換算成 ↑↓＋Enter。
 
 ## 做過但結論是「不做」的

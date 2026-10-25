@@ -81,6 +81,18 @@ struct SessionDetailView: View {
             }
             // 內容短的時候貼著底部（像聊天 app），不要上面一坨、中間一大片空白
             .defaultScrollAnchor(.bottom)
+            .overlay {
+                // 剛開的 session 還沒有任何訊息：講清楚是還沒開始，不是載入壞了
+                if let d = detail, messages.isEmpty, d.prompt == nil {
+                    ContentUnavailableView {
+                        Label("還沒有對話", systemImage: "bubble.left.and.bubble.right")
+                    } description: {
+                        Text(d.status == "working" ? "Claude 在工作，還沒有訊息。"
+                             : ["waiting", "done", "idle"].contains(d.status) ? "從下面打字開始。"
+                             : "Claude 正在啟動，開好之後從下面打字。")
+                    }
+                }
+            }
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: messages.last?.id) { _, _ in
                 withAnimation { proxy.scrollTo("bottom", anchor: .bottom) }
@@ -148,6 +160,7 @@ struct SessionDetailView: View {
                         Label("關掉這個 session", systemImage: "xmark.circle")
                     }
                 } label: { Image(systemName: "ellipsis") }
+                .accessibilityLabel("更多操作")
             }
         }
         .sheet(item: $openTool) { ToolDetailView(sessionID: sessionID, message: $0) }
