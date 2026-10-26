@@ -218,7 +218,10 @@ def project_dirs() -> list[str]:
 
 def recent_dirs() -> list[str]:
     root = os.path.realpath(config.PROJECTS_ROOT)
-    return [d for d in sessions.recent_dirs() if d.startswith(root + os.sep) and os.path.isdir(d)][:6]
+    # 藏起來的資料夾（例如實測用的 ~/Projects/.uitest-sandbox/run-…）不列：一跑實測就把「最近用過」整排佔掉（2026-10-26）
+    return [d for d in sessions.recent_dirs()
+            if d.startswith(root + os.sep) and os.path.isdir(d)
+            and not any(part.startswith(".") for part in os.path.relpath(d, root).split(os.sep))][:6]
 
 
 def account_list() -> list[dict]:
