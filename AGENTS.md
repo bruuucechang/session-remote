@@ -122,6 +122,7 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
 - **B5 真機實測** `tools/livetest.sh`：連正式服務 5391，在 `~/Projects/.uitest-sandbox/run-<時間>` 開真的 Claude（資料夾設定用 haiku）。
   session 名稱會被命名 hook 取成「.uitest-sandbox｜…」，標題列核對要兩種都認。手機自動鎖定會讓 xcodebuild 卡在「device is locked」一直等。
 - **iTerm2 AppleScript 偶爾回「Invalid index (-1719)」**：逐一找分頁時別的分頁剛好開或關。`iterm._osa` 自動重試（找到之前還沒送字，安全）。
+- **同時有兩個 iTerm2 程序時，AppleScript 會連到新開的那個**：2026-10-26 17:32 不明原因多開一個 0 視窗的 iTerm2，服務的 session 列表整個變空（API 回 `{"sessions":[]}`、不報錯）。查法：`osascript -e 'tell application "iTerm2" to count windows'` 是 0、`lsappinfo list | grep -A3 iTerm2` 看到兩個 pid；關掉空的那個就好。
 - **`launchctl bootout` 是非同步的**：馬上 bootstrap 會「Bootstrap failed: 5」而服務整個停掉；`tools/install-agent.sh` 會等卸載完。
 - **v2.1.310 的權限通知只寫「Claude needs your permission」**，沒有工具名：工具名改由後端 `transcript.awaiting` 判斷（拿不準就不講），不要拿「對話最後一則工具」（subagent、平行呼叫都會指錯）。
 - **bash 變數後面直接接全形字**（`$PORT（`）在 `set -u` 底下會被當成變數名的一部分而炸掉，一律寫 `${PORT}`。
