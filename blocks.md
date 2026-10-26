@@ -46,6 +46,9 @@
   沒寫工具名，手機標題變回英文，實測等的「Claude 要用 Bash，允許嗎？」等不到。已改成用對話最後一則工具呼叫的名稱（PromptTests/testPermissionWithoutToolName，看過紅）。
   這種權限框只有 Yes／No（假畫面 `perm_rule.txt` 是實測抄的）
 - 實測抓到並修掉：送完字鍵盤還開著時下一題的選項被收起來（PromptTests/testNewPromptDismissesKeyboard，看過紅）
-- 實測看到、還沒查：關分頁第一次回「iTerm2：…Invalid index (-1719)」，再按一次才關掉（claude 已經結束、分頁位置變了？）
+- 2026-10-26 17:25 `tools/livetest.sh` 真機整輪全過：開新帶第一句話、信任資料夾、單選、打字送出、複選、多題、確認頁、權限提示（touch 真的建出來）、Esc 中斷、關分頁；紀錄檔核對過
+- 「Invalid index (-1719)」查到了：iTerm2 逐一找分頁時剛好有別的分頁開關，參照失效（按信任資料夾、關分頁都撞過）。`iterm._osa` 遇到就重試，最多三次；開新分頁不重試（可能已經開了、送了指令才出錯）
+- 審查提到、沒查（待查）：`_FIND` 從比對 id 到送字之間如果別的分頁關掉，分頁是用位置找的，字理論上可能送到別的分頁、不報錯
+- `tools/install-agent.sh`：bootout 是非同步的，沒等卸載完就 bootstrap 會「Bootstrap failed: 5」、服務整個停掉；改成等卸載完
 - 審查提到、沒修（低）：讀 iTerm2 畫面偶爾失敗時後端回 `prompt: null`，下一次又有題目，app 會當成「新題目出現」把正在打字的鍵盤收掉；
   要修就讓後端讀不到畫面時回 503、app 保留舊的 detail

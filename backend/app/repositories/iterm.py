@@ -31,15 +31,21 @@ class ItermSession:
     name: str
 
 
-def _osa(script: str, *args: str) -> str:
-    try:
-        r = subprocess.run(["osascript", "-e", script, *args], capture_output=True, text=True, timeout=TIMEOUT)
-    except subprocess.TimeoutExpired as e:
-        # 最常見的成因：iTerm2 卡在一個對話框上（第一次啟動的語系提示就是這樣）
-        raise ItermError("iTerm2 沒回應（可能卡在對話框）") from e
-    if r.returncode != 0:
-        raise ItermError(r.stderr.strip() or "osascript 失敗")
-    return r.stdout.rstrip("\n")
+def _osa(script: str, *args: str, retry: bool = True) -> str:
+    # 「Invalid index (-1719)」：逐一找分頁時剛好有別的分頁開或關，參照失效（2026-10-26 真機實測：按信任資料夾、
+    # 關分頁各撞到一次）。只有「先找、找到才動作、動作完就 return」的腳本（_FIND、_LIST）可以重試；
+    # 開新分頁（_NEW）可能已經開了分頁或送了指令才出錯，重試會多開一個、指令再跑一次，所以 retry=False
+    for attempt in range(3):
+        try:
+            r = subprocess.run(["osascript", "-e", script, *args], capture_output=True, text=True, timeout=TIMEOUT)
+        except subprocess.TimeoutExpired as e:
+            # 最常見的成因：iTerm2 卡在一個對話框上（第一次啟動的語系提示就是這樣）
+            raise ItermError("iTerm2 沒回應（可能卡在對話框）") from e
+        if r.returncode == 0:
+            return r.stdout.rstrip("\n")
+        if "(-1719)" not in r.stderr or attempt == 2 or not retry:
+            raise ItermError(r.stderr.strip() or "osascript 失敗")
+        time.sleep(0.2)
 
 
 def is_running() -> bool:
@@ -150,7 +156,7 @@ def new_tab(command: str) -> str:
                 break
         time.sleep(2)
     prev = _frontmost()
-    sid = _osa(_NEW, command)
+    sid = _osa(_NEW, command, retry=False)
     # iTerm2 開新視窗／分頁會把自己拉到最前面（2026-10-16 實測，前一刻 iTerm2 被隱藏時才不會）。
     # 原本在前面的不是 iTerm2 的話就切回去——跟 skills 的 tools/bgrun 同一招（Apple Event activate）。
     if prev and prev != "com.googlecode.iterm2":

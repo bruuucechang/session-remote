@@ -78,3 +78,41 @@ def test_retype_on_multiselect_replaces_previous_text(term):
     sent = term(_scr("multi_typed"))
     actions.reply("x", "加胡椒")
     assert sent == [("ascii", 127)] * 3 + [("write", "加胡椒")]
+
+
+def test_osa_retries_invalid_index(monkeypatch):
+    # 找分頁時別的分頁剛好開關：AppleScript 回 -1719，重試就好（2026-10-26 真機實測）
+    import subprocess
+    from app.repositories import iterm
+    calls = []
+
+    def fake(cmd, **kw):
+        calls.append(cmd)
+        if len(calls) == 1:
+            return subprocess.CompletedProcess(cmd, 1, "", "execution error: Invalid index. (-1719)")
+        return subprocess.CompletedProcess(cmd, 0, "ok\n", "")
+    monkeypatch.setattr(iterm.subprocess, "run", fake)
+    monkeypatch.setattr(iterm.time, "sleep", lambda s: None)
+    assert iterm._osa("x") == "ok" and len(calls) == 2
+    # 別的錯誤不重試
+    calls.clear()
+    monkeypatch.setattr(iterm.subprocess, "run", lambda cmd, **kw: (calls.append(cmd), subprocess.CompletedProcess(cmd, 1, "", "找不到"))[1])
+    import pytest
+    with pytest.raises(iterm.ItermError):
+        iterm._osa("x")
+    assert len(calls) == 1
+
+
+def test_new_tab_never_retries(monkeypatch):
+    # 開新分頁可能已經開好、送了指令才回 -1719：重試會多開一個 Claude
+    import subprocess
+    import pytest
+    from app.repositories import iterm
+    calls = []
+    monkeypatch.setattr(iterm.subprocess, "run", lambda cmd, **kw: (calls.append(cmd), subprocess.CompletedProcess(cmd, 1, "", "Invalid index. (-1719)"))[1])
+    monkeypatch.setattr(iterm.time, "sleep", lambda s: None)
+    monkeypatch.setattr(iterm, "is_running", lambda: True)   # 不然會真的去開 iTerm2
+    monkeypatch.setattr(iterm, "_frontmost", lambda: "")
+    with pytest.raises(iterm.ItermError):
+        iterm.new_tab("echo hi")
+    assert len(calls) == 1
