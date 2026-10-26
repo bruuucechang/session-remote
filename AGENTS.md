@@ -121,6 +121,9 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
 - **新的一題出現就收鍵盤**：送完字鍵盤還開著、Claude 接著問題目時，題目卡會停在「打字中只留兩行」、選項整個看不到（2026-10-26 真機實測）。
 - **B5 真機實測** `tools/livetest.sh`：連正式服務 5391，在 `~/Projects/.uitest-sandbox/run-<時間>` 開真的 Claude（資料夾設定用 haiku）。
   session 名稱會被命名 hook 取成「.uitest-sandbox｜…」，標題列核對要兩種都認。手機自動鎖定會讓 xcodebuild 卡在「device is locked」一直等。
+- **iTerm2 AppleScript 偶爾回「Invalid index (-1719)」**：逐一找分頁時別的分頁剛好開或關。`iterm._osa` 自動重試（找到之前還沒送字，安全）。
+- **`launchctl bootout` 是非同步的**：馬上 bootstrap 會「Bootstrap failed: 5」而服務整個停掉；`tools/install-agent.sh` 會等卸載完。
+- **v2.1.310 的權限通知只寫「Claude needs your permission」**，沒有工具名：工具名改由後端 `transcript.awaiting` 判斷（拿不準就不講），不要拿「對話最後一則工具」（subagent、平行呼叫都會指錯）。
 - **bash 變數後面直接接全形字**（`$PORT（`）在 `set -u` 底下會被當成變數名的一部分而炸掉，一律寫 `${PORT}`。
 - **輸入框叫出鍵盤時題目卡會收成兩行**，只限有可以打字的那一項；確認頁、信任資料夾不收，不然選項整個不見、打的字又送不出去（2026-10-25）。
 

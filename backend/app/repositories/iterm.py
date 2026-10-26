@@ -32,14 +32,19 @@ class ItermSession:
 
 
 def _osa(script: str, *args: str) -> str:
-    try:
-        r = subprocess.run(["osascript", "-e", script, *args], capture_output=True, text=True, timeout=TIMEOUT)
-    except subprocess.TimeoutExpired as e:
-        # 最常見的成因：iTerm2 卡在一個對話框上（第一次啟動的語系提示就是這樣）
-        raise ItermError("iTerm2 沒回應（可能卡在對話框）") from e
-    if r.returncode != 0:
-        raise ItermError(r.stderr.strip() or "osascript 失敗")
-    return r.stdout.rstrip("\n")
+    # 「Invalid index (-1719)」：逐一找分頁時剛好有別的分頁開或關，參照失效。這發生在找到之前，
+    # 還沒送任何字，重試是安全的（2026-10-26 真機實測：按信任資料夾、關分頁各撞到一次）
+    for attempt in range(3):
+        try:
+            r = subprocess.run(["osascript", "-e", script, *args], capture_output=True, text=True, timeout=TIMEOUT)
+        except subprocess.TimeoutExpired as e:
+            # 最常見的成因：iTerm2 卡在一個對話框上（第一次啟動的語系提示就是這樣）
+            raise ItermError("iTerm2 沒回應（可能卡在對話框）") from e
+        if r.returncode == 0:
+            return r.stdout.rstrip("\n")
+        if "(-1719)" not in r.stderr or attempt == 2:
+            raise ItermError(r.stderr.strip() or "osascript 失敗")
+        time.sleep(0.2)
 
 
 def is_running() -> bool:
