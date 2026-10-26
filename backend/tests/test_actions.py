@@ -101,3 +101,18 @@ def test_osa_retries_invalid_index(monkeypatch):
     with pytest.raises(iterm.ItermError):
         iterm._osa("x")
     assert len(calls) == 1
+
+
+def test_new_tab_never_retries(monkeypatch):
+    # 開新分頁可能已經開好、送了指令才回 -1719：重試會多開一個 Claude
+    import subprocess
+    import pytest
+    from app.repositories import iterm
+    calls = []
+    monkeypatch.setattr(iterm.subprocess, "run", lambda cmd, **kw: (calls.append(cmd), subprocess.CompletedProcess(cmd, 1, "", "Invalid index. (-1719)"))[1])
+    monkeypatch.setattr(iterm.time, "sleep", lambda s: None)
+    monkeypatch.setattr(iterm, "is_running", lambda: True)   # 不然會真的去開 iTerm2
+    monkeypatch.setattr(iterm, "_frontmost", lambda: "")
+    with pytest.raises(iterm.ItermError):
+        iterm.new_tab("echo hi")
+    assert len(calls) == 1
