@@ -7,7 +7,7 @@ DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FIX="$DIR/backend/tests/fixtures/uitest"
 # tools/uitest.sh 會傳 SR_FAKE_TMP 進來並在結束時清掉；直接跑時自己開一個暫存目錄
 TMP="${SR_FAKE_TMP:-$(mktemp -d "${TMPDIR:-/tmp}/sr-uitest.XXXXXX")}"
-mkdir -p "$TMP/data" "$TMP/context" "$TMP/Projects"/{hello,ledger,atlas,notes}
+mkdir -p "$TMP/data" "$TMP/context" "$TMP/Projects"/{hello,ledger,atlas,notes,shop-lanes}
 export SR_FAKE="$FIX/scenario.json" SESSION_REMOTE_DATA="$TMP/data" SESSION_REMOTE_TOKEN=uitest \
   ACCOUNTS_FILE="$FIX/accounts.json" QUOTA_FILE="$TMP/quota.json" CONTEXT_DIR="$TMP/context" \
   PROJECTS_ROOT="$TMP/Projects" APNS_KEY_PATH= APNS_KEY_ID=

@@ -59,7 +59,7 @@ struct NewSessionView: View {
                 }
             }
             .scrollDismissesKeyboard(.interactively)
-            .searchable(text: $query, prompt: "找資料夾")
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "找資料夾")
             .navigationTitle("開新 session")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -108,7 +108,13 @@ struct NewSessionView: View {
 
     private func filtered(_ dirs: [String]) -> [String] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
-        return q.isEmpty ? dirs : dirs.filter { $0.lowercased().contains(q) }
+        // 沒在搜尋時不列 *-lanes（並行 session 各自的 worktree 分身，animyria 一個就有幾十個，把清單撐得很長；使用者裁示 2026-10-26）
+        return q.isEmpty ? dirs.filter { !Self.isLane($0) } : dirs.filter { $0.lowercased().contains(q) }
+    }
+
+    /// ~/Projects/<x>-lanes 本身或它底下的資料夾
+    static func isLane(_ dir: String) -> Bool {
+        dir.split(separator: "/").contains { $0.hasSuffix("-lanes") }
     }
 
     private func load() async {
@@ -118,7 +124,7 @@ struct NewSessionView: View {
             options = o
             if account.isEmpty { account = o.accounts.first?.id ?? "" }
             // 預先選好最近用的那個：大多數時候直接按「開始」就好，要換再點別的
-            if directory == nil { directory = o.recent?.first }
+            if directory == nil { directory = o.recent?.first { !Self.isLane($0) } }
             #if DEBUG
             if let d = ProcessInfo.processInfo.environment["SR_DIR"] { directory = d }
             #endif

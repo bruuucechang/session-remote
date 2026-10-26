@@ -33,4 +33,16 @@ final class NewSessionTests: XCTestCase {
         XCTAssertTrue(app.navigationBars.buttons.firstMatch.waitForExistence(timeout: 10))
         shot(app, "opened")
     }
+
+    func testLaneFoldersHiddenUnlessSearching() throws {
+        // *-lanes 是並行 session 的 worktree 分身，平常不列；搜尋才找得到（使用者裁示 2026-10-26）
+        let app = try launchApp()
+        app.buttons["開新 session"].tap()
+        XCTAssertTrue(app.staticTexts["notes"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["shop-lanes"].exists, "分身資料夾還列在清單裡")
+        let search = app.searchFields.firstMatch
+        search.tap()
+        search.typeText("lanes")
+        XCTAssertTrue(app.staticTexts["shop-lanes"].waitForExistence(timeout: 5), "搜尋找不到分身資料夾")
+    }
 }
