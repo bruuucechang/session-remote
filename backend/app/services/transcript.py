@@ -58,6 +58,8 @@ def build(entries: list[dict]) -> dict:
     """回傳 {"title": str|None, "messages": [...]}。"""
     title = None
     messages = []
+    use_ids: dict[str, str] = {}   # 工具訊息 id → tool_use id
+    done: set[str] = set()         # 已經有 tool_result 的 tool_use id
     for e in entries:
         t = e.get("type")
         if t == "custom-title":
@@ -67,6 +69,8 @@ def build(entries: list[dict]) -> dict:
             continue
         msg = e.get("message") or {}
         ts = e.get("timestamp")
+        if t == "user" and isinstance(msg.get("content"), list):
+            done.update(b.get("tool_use_id") for b in msg["content"] if isinstance(b, dict) and b.get("type") == "tool_result")
         if t == "user":
             text = _user_text(msg.get("content"))
             if text and text.startswith("[Request interrupted"):
@@ -82,11 +86,30 @@ def build(entries: list[dict]) -> dict:
                 if bt == "text" and b.get("text", "").strip():
                     messages.append({"id": f"{e.get('uuid')}-{i}", "role": "assistant", "text": b["text"].strip(), "ts": ts})
                 elif bt == "tool_use":
+                    use_ids[f"{e.get('uuid')}-{i}"] = b.get("id", "")
                     messages.append({
                         "id": f"{e.get('uuid')}-{i}", "role": "tool", "tool": b.get("name", ""),
                         "text": tool_summary(b.get("name", ""), b.get("input")), "ts": ts,
                     })
-    return {"title": title, "messages": messages}
+    return {"title": title, "messages": messages, "open": {m for m, u in use_ids.items() if u not in done}}
+
+
+def awaiting(built: dict) -> dict | None:
+    """正在等權限的那一則工具呼叫：對話最後一段連續的工具呼叫裡還沒跑完的，恰好一則才算。
+
+    權限通知新版只寫「Claude needs your permission」（v2.1.310），手機靠這個講出是哪個工具。
+    拿不準就回 None（讓手機只寫「要你允許」）：同時開著兩則以上（平行呼叫，被問的不一定是哪個）、
+    或那一段有還沒跑完的 Agent／Task（可能是 subagent 在要權限，它的工具呼叫不在主對話裡）。
+    """
+    tail = []
+    for m in reversed(built["messages"]):
+        if m["role"] != "tool":
+            break
+        tail.append(m)
+    pending = [m for m in tail if m["id"] in built.get("open", set())]
+    if len(pending) != 1 or pending[0].get("tool") in ("Agent", "Task"):
+        return None
+    return pending[0]
 
 
 def last_text(messages: list[dict]) -> str:

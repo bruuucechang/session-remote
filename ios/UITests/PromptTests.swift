@@ -183,8 +183,21 @@ final class PromptTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Claude 要用 Bash，允許嗎？"].waitForExistence(timeout: 10), "通知沒寫工具時標題不對")
         XCTAssertFalse(app.any("Claude needs your permission").exists, "標題還是英文")
         shot(app, "permission-rule")
+        // 工具列要是畫面上那一條（touch probe.txt）
+        app.buttons["看 Bash 的完整內容"].tap()
+        XCTAssertTrue(app.any("touch probe.txt").waitForExistence(timeout: 10), "工具列指的不是要允許的那一條")
+        app.buttons["完成"].tap()
         app.buttons["允許"].tap()
         waitSent("按允許送數字 1") { $0.op == "write" && $0.id == "FAKE-PERM2" && $0.text == "1" }
+    }
+
+    func testPermissionAmbiguousToolSaysNothing() throws {
+        // 同一則回覆平行呼叫 Bash 與 Read、兩個都還沒跑完：被問的不一定是哪個，寧可不講也不能講錯
+        let app = try open("FAKE-PERM3")
+        XCTAssertTrue(app.staticTexts["Claude 要你允許，允許嗎？"].waitForExistence(timeout: 10), "拿不準是哪個工具時標題不對")
+        XCTAssertFalse(app.any("Claude 要用").exists, "拿不準卻講了工具名")
+        XCTAssertFalse(app.buttons["看 Read 的完整內容"].exists || app.buttons["看 Bash 的完整內容"].exists, "拿不準卻顯示工具列")
+        shot(app, "permission-ambiguous")
     }
 
     func testPlanApprove() throws {

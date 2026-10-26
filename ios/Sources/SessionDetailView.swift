@@ -294,7 +294,7 @@ struct SessionDetailView: View {
         let options = p.options.filter { !isTypeRow($0) && !$0.label.hasPrefix("Chat about") }
         let current = PromptMatch(pending: d.pending, prompt: p)
         let words = PromptWords(pending: d.pending, prompt: p, match: current, cwd: d.cwd,
-                                lastTool: messages.last.flatMap { $0.role == "tool" ? $0.tool : nil })
+                                awaitingTool: d.awaiting_tool?.tool)
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: d.pending?.kind == "ask" ? "questionmark.bubble.fill" : "hand.raised.fill")
@@ -316,10 +316,8 @@ struct SessionDetailView: View {
                         .font(.subheadline.weight(.semibold))
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
-                    // 權限提示：要你允許的那個工具呼叫（對話最後一則），點開看完整指令
-                    // 同一則回覆連發兩個同名工具時分不出問的是哪一個：不顯示，免得指錯
-                    if let tool = words.tool, let m = messages.last, m.role == "tool", m.tool == tool,
-                       !(messages.dropLast().last.map { $0.role == "tool" && $0.tool == tool } ?? false) {
+                    // 權限提示：要你允許的那個工具呼叫（後端拿得準才有），點開看完整指令
+                    if let tool = words.tool, let m = d.awaiting_tool, m.tool == tool {
                         Button { openTool = m } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "terminal")
@@ -636,12 +634,12 @@ struct PromptWords {
     /// 權限提示：要用的工具（從通知「Claude needs your permission to use Bash」取出）
     let tool: String?
 
-    /// lastTool：對話最後一則是工具呼叫時的工具名。新版的通知只寫「Claude needs your permission」、
-    /// 沒寫是哪個工具（2026-10-26 v2.1.310 實測），這時用它
-    init(pending: Pending?, prompt: Prompt, match: PromptMatch, cwd: String, lastTool: String? = nil) {
+    /// awaitingTool：後端認出來正在等權限的那一則工具呼叫（拿不準就是 nil）。新版的通知只寫
+    /// 「Claude needs your permission」、沒寫是哪個工具（2026-10-26 v2.1.310 實測），這時用它
+    init(pending: Pending?, prompt: Prompt, match: PromptMatch, cwd: String, awaitingTool: String? = nil) {
         let message = pending?.message ?? ""
         let tool = message.range(of: #"permission to use (\S+)"#, options: .regularExpression)
-            .map { String(message[$0].split(separator: " ").last ?? "") } ?? lastTool
+            .map { String(message[$0].split(separator: " ").last ?? "") } ?? awaitingTool
         if let review = prompt.review {
             kind = .review
             badge = "確認答案 · 共 \(review.count) 題"
