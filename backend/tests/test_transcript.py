@@ -45,3 +45,32 @@ def test_tool_detail_pairs_result_and_search():
     hits = search(build(entries)["messages"], "banana")
     assert [h["id"] for h in hits] == ["u2"] and "Banana" in hits[0]["snippet"]
     assert search(build(entries)["messages"], "  ") == []
+
+
+def _use(uuid, *tools, side=False):
+    return {"type": "assistant", "uuid": uuid, "isSidechain": side, "message": {"content": [
+        {"type": "tool_use", "id": f"{uuid}-{n}", "name": n, "input": {"command": n}} for n in tools]}}
+
+
+def _result(*ids):
+    return {"type": "user", "uuid": "r-" + ids[0], "message": {"content": [
+        {"type": "tool_result", "tool_use_id": i, "content": "ok"} for i in ids]}}
+
+
+def test_awaiting_tool_is_the_single_open_call():
+    # 權限通知沒寫工具名時，手機靠這個講出是哪一個：只認「最後一段工具呼叫裡恰好一則還沒跑完」
+    built = transcript.build([_use("a", "Read"), _result("a-Read"), _use("b", "Bash")])
+    assert transcript.awaiting(built)["tool"] == "Bash"
+
+
+def test_awaiting_tool_none_when_ambiguous():
+    # 已經跑完的工具不算（tool_use 還沒寫進紀錄的那一刻，不能拿上一個 Read 頂替）
+    assert transcript.awaiting(transcript.build([_use("a", "Read"), _result("a-Read")])) is None
+    # 平行呼叫、兩則都還沒跑完：被問的不一定是最後一個
+    assert transcript.awaiting(transcript.build([_use("a", "Bash", "Read")])) is None
+    # subagent 在跑：要權限的可能是它（它的呼叫不在主對話裡）
+    built = transcript.build([_use("a", "Agent"), _use("s", "Bash", side=True)])
+    assert transcript.awaiting(built) is None
+    # 很久以前被中斷、沒有結果的呼叫不算（中間隔了別的訊息）
+    old = [_use("a", "Bash"), {"type": "user", "uuid": "u", "message": {"content": "算了"}}]
+    assert transcript.awaiting(transcript.build(old)) is None

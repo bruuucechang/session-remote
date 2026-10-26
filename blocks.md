@@ -41,8 +41,10 @@
 - 不做：碰使用者自己的 session
 - 實測：`tools/livetest.sh`（ios/UITests/LiveTests.swift，手機要解鎖、自動鎖定設「永不」）。在 `~/Projects/.uitest-sandbox/run-<時間>` 開真的 Claude（haiku），每一步先核對 API 的 cwd 才動手
 - 2026-10-26 01:50 進度（4 輪真機實測）：開新帶第一句話、信任資料夾、單選、打字送出、複選、多題、確認頁 **都在真機上成功過**；
-  還沒成功：權限提示（測試資料夾的 `ask: ["Bash(touch:*)"]` 在互動 session 沒擋住，touch 沒問就跑了；
-  同樣設定用 `claude -p` 實測三種寫法都會擋——差在哪還沒查）、Esc 中斷、關分頁
+  還沒成功：權限提示、Esc 中斷、關分頁
+- 權限提示查到了（2026-10-26 02:3x，tmux 開互動 claude 實測）：設定有效、權限框有跳；是 v2.1.310 的通知只寫「Claude needs your permission」、
+  沒寫工具名，手機標題變回英文，實測等的「Claude 要用 Bash，允許嗎？」等不到。已改成用對話最後一則工具呼叫的名稱（PromptTests/testPermissionWithoutToolName，看過紅）。
+  這種權限框只有 Yes／No（假畫面 `perm_rule.txt` 是實測抄的）
 - 實測抓到並修掉：送完字鍵盤還開著時下一題的選項被收起來（PromptTests/testNewPromptDismissesKeyboard，看過紅）
 - 實測看到、還沒查：關分頁第一次回「iTerm2：…Invalid index (-1719)」，再按一次才關掉（claude 已經結束、分頁位置變了？）
 - 審查提到、沒修（低）：讀 iTerm2 畫面偶爾失敗時後端回 `prompt: null`，下一次又有題目，app 會當成「新題目出現」把正在打字的鍵盤收掉；

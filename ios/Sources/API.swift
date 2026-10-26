@@ -96,6 +96,8 @@ struct SessionDetail: Codable {
     /// 回傳的第一則之前還有沒有更早的
     let has_more: Bool?
     let prompt: Prompt?
+    /// 正在等權限的那一則工具呼叫（後端拿得準才有，見 transcript.awaiting）
+    let awaiting_tool: Message?
     let screen: [String]
     let context_pct: Int?
     let starred: Bool?

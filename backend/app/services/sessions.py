@@ -227,6 +227,7 @@ def _view(s: iterm.ItermSession, proc: procs.ClaudeProc, with_messages: bool = F
     }
     if with_messages:
         view["messages"] = built["messages"]
+        view["awaiting_tool"] = transcript.awaiting(built)
     return view
 
 
