@@ -116,3 +116,15 @@ def test_new_tab_never_retries(monkeypatch):
     with pytest.raises(iterm.ItermError):
         iterm.new_tab("echo hi")
     assert len(calls) == 1
+
+
+def test_recent_dirs_skip_hidden_folders(tmp_path, monkeypatch):
+    # 實測開在 ~/Projects/.uitest-sandbox/run-… 的 session 不能佔掉「最近用過」（2026-10-26）
+    from app import config
+    from app.services import actions, sessions
+    for d in ("shop", ".uitest-sandbox/run-1", "lanes/.hidden"):
+        (tmp_path / d).mkdir(parents=True)
+    monkeypatch.setattr(config, "PROJECTS_ROOT", str(tmp_path))
+    monkeypatch.setattr(sessions, "recent_dirs", lambda: [str(tmp_path / ".uitest-sandbox/run-1"), str(tmp_path / "shop"),
+                                                         str(tmp_path / "lanes/.hidden")])
+    assert actions.recent_dirs() == [str(tmp_path / "shop")]

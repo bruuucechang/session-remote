@@ -117,6 +117,8 @@ struct NewSessionView: View {
             let o = try await api.options()
             options = o
             if account.isEmpty { account = o.accounts.first?.id ?? "" }
+            // 預先選好最近用的那個：大多數時候直接按「開始」就好，要換再點別的
+            if directory == nil { directory = o.recent?.first }
             #if DEBUG
             if let d = ProcessInfo.processInfo.environment["SR_DIR"] { directory = d }
             #endif
