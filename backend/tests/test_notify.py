@@ -14,6 +14,16 @@ def test_no_devices(monkeypatch):
     assert notify.send_text("t", "b") == "no-devices"
 
 
+def test_muted_thread(monkeypatch):
+    sent = []
+    data = {"settings": {"mute_threads": ["autoloop"]}, "devices": {"tok": {"env": "sandbox"}}}
+    monkeypatch.setattr(notify.apns, "configured", lambda: True)
+    monkeypatch.setattr(notify.store, "load", lambda name: data.get(name, {}))
+    monkeypatch.setattr(notify.apns, "send", lambda tok, env, payload, collapse_id=None: sent.append(tok))
+    assert notify.send_text("出圖檢查點", "x", thread="autoloop") == "muted" and sent == []
+    assert notify.send_text("推送佇列被退回、沒人修", "x", thread="pushq") == "sent" and sent == ["tok"]
+
+
 def test_sends_without_session_key(monkeypatch):
     sent = []
     monkeypatch.setattr(notify.apns, "configured", lambda: True)
