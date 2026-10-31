@@ -65,9 +65,11 @@ def _send_badge(badge: int) -> None:
 
 def send_text(title: str, body: str, thread: str = "notify") -> str:
     """別的本機服務（office 的產線通知）要推一則跟 session 無關的訊息。
-    回傳 sent／skipped（沒設金鑰）／no-devices。不帶 session，點開只會打開 app。"""
+    回傳 sent／skipped（沒設金鑰）／muted（thread 在設定的 mute_threads 裡）／no-devices。不帶 session，點開只會打開 app。"""
     if not apns.configured():
         return "skipped"
+    if thread in settings().get("mute_threads", []):
+        return "muted"   # 例行回報（例如 autoloop 出圖檢查點）：使用者只要「要你動手」與定期報告
     if not store.load("devices"):
         return "no-devices"
     payload = {"aps": {"alert": {"title": title[:120], "body": body[:400]}, "sound": "default", "thread-id": thread}}
@@ -112,7 +114,7 @@ def session_changed(tty: str) -> None:
 
 
 def settings() -> dict:
-    return {"star_only_push": False, **store.load("settings")}
+    return {"star_only_push": False, "mute_threads": [], **store.load("settings")}
 
 
 def update_settings(**kw) -> dict:
