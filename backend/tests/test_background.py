@@ -1,6 +1,7 @@
 """背景任務：判定、顯示的字、背景結束才推完工。不碰真的程序與 iTerm2。"""
 
 import os
+import time
 
 import pytest
 
@@ -57,8 +58,8 @@ def tracked(monkeypatch):
         "/dev/ttys009": {"tty": "/dev/ttys009", "pid": 123, "status": "done", "status_since": "2026-01-01T00:00:00+00:00"}}})
     monkeypatch.setattr(sessions, "_save", lambda: None)
     monkeypatch.setattr(sessions, "_bg", {"/dev/ttys009": 123})
-    monkeypatch.setattr(sessions, "_bg_since", {}, raising=False)
-    monkeypatch.setattr(sessions, "_bg_gone", {}, raising=False)
+    monkeypatch.setattr(sessions, "_bg_since", {})
+    monkeypatch.setattr(sessions, "_bg_gone", {})
     pushed = []
     monkeypatch.setattr(notify, "session_changed", lambda tty: pushed.append(tty))
     return pushed
@@ -137,10 +138,34 @@ def test_background_back_resets_grace(tracked, monkeypatch):
 def test_stop_during_ps_not_dropped(tracked, monkeypatch):
     # ps 跑的同時 Stop 剛記下新的背景：拿舊快照不准判它結束
     def ps():
-        sessions._bg_since["/dev/ttys009"] = __import__("time").time()
+        sessions._bg_since["/dev/ttys009"] = time.time()
         return {}
     monkeypatch.setattr(sessions.procs, "background_shells", ps)
     sessions.check_background()
     monkeypatch.setattr(sessions.procs, "background_shells", lambda: {123: [shell("sleep 100")]})
     sessions.check_background()
     assert tracked == [] and sessions._bg == {"/dev/ttys009": 123} and sessions._bg_gone == {}
+
+
+def test_woken_turn_finishes_within_grace_single_push(tracked, monkeypatch):
+    # 看門的第一輪看到沒了 → 模型醒來（工作中）→ 10 秒內做完 Stop（自己推完工）→ 看門的第二輪不准再推
+    monkeypatch.setattr(sessions.procs, "background_shells", lambda: {})
+    monkeypatch.setattr(sessions, "_ensure_watch", lambda: None)
+    sessions.check_background()
+    rec = sessions._state["sessions"]["/dev/ttys009"]
+    rec["status"] = "working"
+    sessions.apply_hook("Stop", "/dev/ttys009", 123, "", {})
+    assert tracked == ["/dev/ttys009"]
+    sessions.check_background()
+    assert tracked == ["/dev/ttys009"] and sessions._bg == {}
+
+
+def test_woken_turn_done_to_done_watcher_pushes(tracked, monkeypatch):
+    # 醒來那一輪沒經過工作中（完工→完工，Stop 不推）：留給看門的推一次
+    monkeypatch.setattr(sessions.procs, "background_shells", lambda: {})
+    monkeypatch.setattr(sessions, "_ensure_watch", lambda: None)
+    sessions.check_background()
+    sessions.apply_hook("Stop", "/dev/ttys009", 123, "", {})
+    assert tracked == []
+    sessions.check_background()
+    assert tracked == ["/dev/ttys009"]

@@ -10,7 +10,8 @@
 狀態：
   working 工作中 → waiting 等你回答 → done 完工 / idle 待命 / unknown 還沒回報過
   background 背景跑：不是 hook 給的，是列表時算的——done／idle 但 Claude 開的背景 Bash 還活著。
-  背景全部結束時 `check_background` 把完工時間改成那一刻並通知（推播只在那時候跳）。
+  背景全部結束時 `check_background` 把完工時間改成第一次看到結束的那一刻，再等一輪（Claude Code 會叫醒模型接著做）
+  還停在完工才通知（推播只在那時候跳，所以完工時間會比推播早最多一輪）。
 """
 
 import os
@@ -119,6 +120,10 @@ def apply_hook(event: str, tty: str | None, pid: int | None, config_dir: str, pa
             # ps 失敗（None）也先記：交給看門的去判斷，不然當下就推了「完工」
             if pid and _bg_labels(pid, fresh=True) != []:
                 _track(tty, pid)
+            elif prev != DONE:
+                # 背景結束後被叫醒、這一輪做完沒有新背景：這次 Stop 自己就推完工，看門的不准再推一次
+                # （完工→完工沒變的話 Stop 不推，留給看門的推）
+                _untrack(tty)
 
         _save()
         new = rec.get("status")
@@ -229,6 +234,12 @@ def _track(tty: str, pid: int) -> None:
     _ensure_watch()
 
 
+def _untrack(tty: str) -> None:
+    _bg.pop(tty, None)
+    _bg_since.pop(tty, None)
+    _bg_gone.pop(tty, None)
+
+
 def effective_status(status: str, bg: list[str]) -> str:
     """回合結束（完工、待命）但還有背景在跑＝背景跑；等你回答、工作中照舊。"""
     return BACKGROUND if bg and status in (DONE, IDLE) else status
@@ -261,9 +272,7 @@ def check_background() -> None:
             gone = _bg_gone.setdefault(tty, t0)
             if gone == t0:
                 continue   # 第一次看到沒了：等下一輪
-            _bg.pop(tty, None)
-            _bg_since.pop(tty, None)
-            _bg_gone.pop(tty, None)
+            _untrack(tty)
             ended = True
             rec = _state["sessions"].get(tty)
             if rec and rec.get("pid") == pid and rec.get("status") == DONE:
