@@ -63,9 +63,20 @@ struct SessionsLiveActivity: Widget {
                 .widgetURL(URL(string: "sessionremote://open"))
         } dynamicIsland: { ctx in
             let s = ctx.state
+            // 沒有等你、沒有工作中，只剩背景在跑時，小島顯示背景數（不然寫 0 看起來像都停了）
+            let (n, icon, tint): (Int, String, Color) =
+                s.waiting > 0 ? (s.waiting, "questionmark.bubble.fill", .orange)
+                : s.working > 0 || s.background == 0 ? (s.working, "terminal.fill", .blue)
+                : (s.background, "hourglass", .purple)
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Label("\(s.working)", systemImage: "ellipsis.circle.fill").foregroundStyle(.blue).font(.headline)
+                    HStack(spacing: 10) {
+                        Label("\(s.working)", systemImage: "ellipsis.circle.fill").foregroundStyle(.blue)
+                        if s.background > 0 {
+                            Label("\(s.background)", systemImage: "hourglass").foregroundStyle(.purple)
+                        }
+                    }
+                    .font(.headline)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     Label("\(s.waiting)", systemImage: "questionmark.bubble.fill").foregroundStyle(.orange).font(.headline)
@@ -74,15 +85,11 @@ struct SessionsLiveActivity: Widget {
                     Text(s.headline).font(.callout).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
                 }
             } compactLeading: {
-                Image(systemName: s.waiting > 0 ? "questionmark.bubble.fill" : "terminal.fill")
-                    .foregroundStyle(s.waiting > 0 ? .orange : .blue)
+                Image(systemName: icon).foregroundStyle(tint)
             } compactTrailing: {
-                Text("\(s.waiting > 0 ? s.waiting : s.working)")
-                    .foregroundStyle(s.waiting > 0 ? .orange : .blue)
-                    .monospacedDigit()
+                Text("\(n)").foregroundStyle(tint).monospacedDigit()
             } minimal: {
-                Text("\(s.waiting > 0 ? s.waiting : s.working)")
-                    .foregroundStyle(s.waiting > 0 ? .orange : .blue)
+                Text("\(n)").foregroundStyle(tint)
             }
             .widgetURL(URL(string: "sessionremote://open"))
         }

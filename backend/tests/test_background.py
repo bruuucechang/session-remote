@@ -57,6 +57,8 @@ def tracked(monkeypatch):
         "/dev/ttys009": {"tty": "/dev/ttys009", "pid": 123, "status": "done", "status_since": "2026-01-01T00:00:00+00:00"}}})
     monkeypatch.setattr(sessions, "_save", lambda: None)
     monkeypatch.setattr(sessions, "_bg", {"/dev/ttys009": 123})
+    monkeypatch.setattr(sessions, "_bg_since", {}, raising=False)
+    monkeypatch.setattr(sessions, "_bg_gone", {}, raising=False)
     pushed = []
     monkeypatch.setattr(notify, "session_changed", lambda tty: pushed.append(tty))
     return pushed
@@ -71,6 +73,8 @@ def test_background_still_running_no_push(tracked, monkeypatch):
 def test_background_finished_pushes_done(tracked, monkeypatch):
     monkeypatch.setattr(sessions.procs, "background_shells", lambda: {})
     sessions.check_background()
+    assert tracked == [], "第一次看到背景沒了就推：模型可能馬上被叫醒接著做"
+    sessions.check_background()
     rec = sessions._state["sessions"]["/dev/ttys009"]
     assert tracked == ["/dev/ttys009"] and sessions._bg == {}
     assert rec["status"] == "done" and rec["status_since"] > "2026-01-01T00:00:00+00:00"   # 完工時間＝背景結束的時間
@@ -80,6 +84,7 @@ def test_background_finished_after_new_turn_no_push(tracked, monkeypatch):
     # 背景結束時使用者已經又開了一輪：不是完工，不推
     sessions._state["sessions"]["/dev/ttys009"]["status"] = "working"
     monkeypatch.setattr(sessions.procs, "background_shells", lambda: {})
+    sessions.check_background()
     sessions.check_background()
     assert tracked == [] and sessions._bg == {}
 
@@ -97,6 +102,7 @@ def test_idle_background_finished_updates_summary(tracked, monkeypatch):
     monkeypatch.setattr(notify, "summary_changed", lambda force=False: calls.append(1))
     monkeypatch.setattr(sessions.procs, "background_shells", lambda: {})
     sessions.check_background()
+    sessions.check_background()
     assert tracked == [] and calls == [1]
 
 
@@ -105,3 +111,36 @@ def test_ps_failure_is_not_finished(tracked, monkeypatch):
     monkeypatch.setattr(sessions.procs, "_run", lambda args: "")
     sessions.check_background()
     assert tracked == [] and sessions._bg == {"/dev/ttys009": 123}
+
+
+def test_background_end_wakes_model_single_push(tracked, monkeypatch):
+    # 背景結束 → Claude Code 叫醒模型接著做（工作中）→ 做完 Stop 自己推完工；看門的不准先推一則
+    monkeypatch.setattr(sessions.procs, "background_shells", lambda: {})
+    sessions.check_background()
+    sessions._state["sessions"]["/dev/ttys009"]["status"] = "working"
+    sessions.check_background()
+    assert tracked == [] and sessions._bg == {}
+
+
+def test_background_back_resets_grace(tracked, monkeypatch):
+    # 第一次沒看到、下一輪又有了（例如接著開了新的背景）：不算結束
+    kids = {}
+    monkeypatch.setattr(sessions.procs, "background_shells", lambda: kids)
+    sessions.check_background()
+    kids[123] = [shell("sleep 100")]
+    sessions.check_background()
+    kids.clear()
+    sessions.check_background()
+    assert tracked == [] and sessions._bg == {"/dev/ttys009": 123}
+
+
+def test_stop_during_ps_not_dropped(tracked, monkeypatch):
+    # ps 跑的同時 Stop 剛記下新的背景：拿舊快照不准判它結束
+    def ps():
+        sessions._bg_since["/dev/ttys009"] = __import__("time").time()
+        return {}
+    monkeypatch.setattr(sessions.procs, "background_shells", ps)
+    sessions.check_background()
+    monkeypatch.setattr(sessions.procs, "background_shells", lambda: {123: [shell("sleep 100")]})
+    sessions.check_background()
+    assert tracked == [] and sessions._bg == {"/dev/ttys009": 123} and sessions._bg_gone == {}

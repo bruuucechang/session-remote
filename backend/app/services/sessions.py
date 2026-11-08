@@ -118,8 +118,7 @@ def apply_hook(event: str, tty: str | None, pid: int | None, config_dir: str, pa
             # 先記下來：沒人打開手機列表時，背景結束也要有人看到
             # ps 失敗（None）也先記：交給看門的去判斷，不然當下就推了「完工」
             if pid and _bg_labels(pid, fresh=True) != []:
-                _bg[tty] = pid
-                _ensure_watch()
+                _track(tty, pid)
 
         _save()
         new = rec.get("status")
@@ -204,6 +203,8 @@ def _transcript_path(rec: dict, proc: procs.ClaudeProc) -> str | None:
 # ---------------------------------------------------------------- 背景任務
 
 _bg: dict[str, int] = {}          # tty → pid：上次看到有背景任務的 session，等它們結束
+_bg_since: dict[str, float] = {}  # tty → 什麼時候記下來的：比這次 ps 還新的不准拿這次 ps 判結束
+_bg_gone: dict[str, float] = {}   # tty → 第一次看到背景都沒了的時間：再等一輪才算完工
 _kids_cache: tuple[float, dict] = (0.0, {})
 _WATCH_EVERY = 10
 _watching = False
@@ -220,15 +221,28 @@ def _bg_labels(pid: int, fresh: bool = False) -> list[str] | None:
     return background.labels(_kids_cache[1].get(pid, []))
 
 
+def _track(tty: str, pid: int) -> None:
+    """記下這個 session 有背景在跑（呼叫的人要拿著 _lock）。"""
+    _bg[tty] = pid
+    _bg_since[tty] = time.time()
+    _bg_gone.pop(tty, None)
+    _ensure_watch()
+
+
 def effective_status(status: str, bg: list[str]) -> str:
     """回合結束（完工、待命）但還有背景在跑＝背景跑；等你回答、工作中照舊。"""
     return BACKGROUND if bg and status in (DONE, IDLE) else status
 
 
 def check_background() -> None:
-    """看記下來的那幾個 session 背景結束了沒；結束而且還停著（完工）就改完工時間、通知（跳推播）。"""
+    """看記下來的那幾個 session 背景結束了沒；結束而且還停著（完工）就改完工時間、通知（跳推播）。
+
+    背景結束後 Claude Code 會把模型叫醒接著做，所以第一次看到沒了先不算，下一輪還停在完工才推：
+    不然先推一則「完工」、模型又做完一輪再推一則。
+    """
     if not _bg:
         return
+    t0 = time.time()
     kids = procs.background_shells()
     if kids is None:
         return   # ps 失敗不等於背景結束，下一輪再看
@@ -236,15 +250,24 @@ def check_background() -> None:
     finished, ended = [], False
     with _lock:
         # 快取換成這次的新資料要在鎖裡：不然列表拿舊快取又把剛移掉的記回去，同一件推兩次
-        _kids_cache = (time.time(), kids)
+        if t0 > _kids_cache[0]:
+            _kids_cache = (t0, kids)
         for tty, pid in list(_bg.items()):
+            if _bg_since.get(tty, 0) >= t0:
+                continue   # ps 之後才記的（Stop 剛好插進來）：這份快照看不到它的背景
             if background.labels(kids.get(pid, [])):
+                _bg_gone.pop(tty, None)
                 continue
+            gone = _bg_gone.setdefault(tty, t0)
+            if gone == t0:
+                continue   # 第一次看到沒了：等下一輪
             _bg.pop(tty, None)
+            _bg_since.pop(tty, None)
+            _bg_gone.pop(tty, None)
             ended = True
             rec = _state["sessions"].get(tty)
             if rec and rec.get("pid") == pid and rec.get("status") == DONE:
-                rec["status_since"] = _now()
+                rec["status_since"] = datetime.fromtimestamp(gone, timezone.utc).isoformat()
                 finished.append(tty)
         if finished:
             _save()
@@ -286,8 +309,7 @@ def _view(s: iterm.ItermSession, proc: procs.ClaudeProc, with_messages: bool = F
     # 工作中不算：前景指令也是子程序，數字不準
     bg = [] if status == WORKING else (_bg_labels(proc.pid) or [])
     if bg and status in (DONE, IDLE) and proc.tty not in _bg:
-        _bg[proc.tty] = proc.pid
-        _ensure_watch()
+        _track(proc.tty, proc.pid)
     status = effective_status(status, bg)
     if status == UNKNOWN:
         # 還沒回報過（例如剛開、卡在「信任這個資料夾嗎」）：看畫面上是不是正在問
