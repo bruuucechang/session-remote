@@ -15,11 +15,16 @@ final class ListTests: XCTestCase {
         // 收合狀態記在手機上（@AppStorage），測試前後要一樣：點兩下，各看一次
         let wasOpen = app.staticTexts["palrogue"].exists
         shot(app, wasOpen ? "expanded" : "folded")
+        // 背景跑多一區之後，待命標頭被擠到底下的搜尋框後面：先捲上來再點，不然點到搜尋框
+        app.swipeUp()
         headers[4].tap()
+        // 展開的列在畫面外不會建出來，再捲一次才找得到
+        app.swipeUp()
         let flipped = NSPredicate(format: "exists == %@", NSNumber(value: !wasOpen))
         expectation(for: flipped, evaluatedWith: app.staticTexts["palrogue"])
         waitForExpectations(timeout: 5)
         shot(app, wasOpen ? "folded" : "expanded")
+        for _ in 0..<3 where !headers[4].isHittable { app.swipeDown() }
         headers[4].tap()
     }
 
