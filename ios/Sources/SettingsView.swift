@@ -62,7 +62,7 @@ struct SettingsView: View {
             }
             if let on = starOnly {
                 Section {
-                    Toggle("做完只推標星號的", isOn: Binding(
+                    Toggle("完工只推標星號的", isOn: Binding(
                         get: { on },
                         set: { v in
                             starOnly = v
@@ -71,7 +71,7 @@ struct SettingsView: View {
                 } header: {
                     Text("推播")
                 } footer: {
-                    Text("開了之後，沒標星號的 session 做完不跳通知；等你回答的照樣會跳。")
+                    Text("開了之後，沒標星號的 session 完工不跳通知；等你回答的照樣會跳。")
                 }
             }
             if !firstRun {

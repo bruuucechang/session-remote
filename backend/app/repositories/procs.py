@@ -52,6 +52,20 @@ def list_claude() -> list[ClaudeProc]:
     return procs
 
 
+def background_shells() -> dict[int, list[str]] | None:
+    """每個程序底下的子程序指令（按父程序 pid）。一次 ps 全拿，判斷哪些算背景任務是 services 的事。
+    ps 失敗（逾時）回 None：正常的 ps 至少列得出自己，空的一定是失敗，不能當成「沒有子程序」。"""
+    out = _run(["ps", "-ww", "-axo", "ppid=,command="])
+    if not out.strip():
+        return None
+    kids: dict[int, list[str]] = {}
+    for line in out.splitlines():
+        parts = line.strip().split(None, 1)
+        if len(parts) == 2 and parts[0].isdigit():
+            kids.setdefault(int(parts[0]), []).append(parts[1])
+    return kids
+
+
 def alive(pid: int) -> bool:
     try:
         os.kill(pid, 0)
@@ -67,3 +81,4 @@ if config.FAKE:
     from . import fake as _fake
     list_claude = _fake.list_claude  # noqa: F811
     alive = _fake.alive  # noqa: F811
+    background_shells = _fake.background_shells  # noqa: F811

@@ -13,6 +13,7 @@ struct WaitingEntry: TimelineEntry {
         sessions.filter { $0.status == "waiting" }.sorted { ($0.starred == true ? 0 : 1) < ($1.starred == true ? 0 : 1) }
     }
     var working: [SessionSummary] { sessions.filter { $0.status == "working" } }
+    var background: [SessionSummary] { sessions.filter { $0.status == "background" } }
 }
 
 struct WaitingWidgetView: View {
@@ -76,6 +77,9 @@ struct WaitingWidgetView: View {
             HStack {
                 Label("等你 \(entry.waiting.count)", systemImage: "questionmark.bubble.fill").foregroundStyle(.orange)
                 Label("工作中 \(entry.working.count)", systemImage: "ellipsis.circle").foregroundStyle(.blue)
+                if !entry.background.isEmpty {
+                    Label("背景 \(entry.background.count)", systemImage: "hourglass").foregroundStyle(.purple)
+                }
                 Spacer()
                 Text(entry.date, style: .time).foregroundStyle(.tertiary)
             }
@@ -86,7 +90,7 @@ struct WaitingWidgetView: View {
                 Spacer()
             } else if entry.waiting.isEmpty {
                 Spacer()
-                Text(entry.working.isEmpty ? "沒有要你處理的" : "都在跑，沒有在等你")
+                Text(entry.working.isEmpty && entry.background.isEmpty ? "沒有要你處理的" : "都在跑，沒有在等你")
                     .font(.callout).foregroundStyle(.secondary).frame(maxWidth: .infinity)
                 Spacer()
             } else {
@@ -118,7 +122,10 @@ struct LockScreenView: View {
             HStack(spacing: 14) {
                 count(state.waiting, "等你", "questionmark.bubble.fill", .orange)
                 count(state.working, "工作中", "ellipsis.circle.fill", .blue)
-                count(state.done, "做完", "checkmark.circle.fill", .green)
+                if state.background > 0 {
+                    count(state.background, "背景", "hourglass.circle.fill", .purple)
+                }
+                count(state.done, "完工", "checkmark.circle.fill", .green)
                 Spacer()
             }
             Text(state.headline)

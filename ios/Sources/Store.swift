@@ -204,7 +204,8 @@ enum Status {
         switch s {
         case "waiting": return "等你回答"
         case "working": return "工作中"
-        case "done": return "做完了"
+        case "background": return "背景跑"
+        case "done": return "完工"
         case "idle": return "待命"
         default: return "未回報"
         }
@@ -214,6 +215,7 @@ enum Status {
         switch s {
         case "waiting": return .orange
         case "working": return .blue
+        case "background": return .purple
         case "done": return .green
         default: return .gray
         }

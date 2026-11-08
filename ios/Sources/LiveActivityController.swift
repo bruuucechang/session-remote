@@ -38,7 +38,7 @@ final class LiveActivityController {
         #endif
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         let state = Summary.state(sessions)
-        let active = state.working + state.waiting > 0
+        let active = state.active
         let content = ActivityContent(state: state, staleDate: nil)
         // 結束後的那個還會留在 activities 裡（狀態 .ended，15 分鐘後才消失）：更新它沒有用，要找還活著的
         if let a = Activity<SessionsActivityAttributes>.activities.first(where: { $0.activityState == .active || $0.activityState == .stale }) {

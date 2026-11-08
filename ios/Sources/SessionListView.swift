@@ -14,7 +14,7 @@ struct SessionListView: View {
 
     /// 依狀態分組，要你處理的排最上面
     private static let order: [(key: String, title: String)] = [
-        ("starred", "星號"), ("waiting", "等你回答"), ("working", "工作中"), ("done", "做完了"), ("idle", "待命"), ("", "其他"),
+        ("starred", "星號"), ("waiting", "等你回答"), ("working", "工作中"), ("background", "背景跑"), ("done", "完工"), ("idle", "待命"), ("", "其他"),
     ]
 
     private var sections: [(title: String, items: [SessionSummary])] {
@@ -238,6 +238,12 @@ struct SessionRow: View {
                     if let ctx = s.context_pct {
                         ContextChip(pct: ctx)
                     }
+                    // 等你回答的同時背景也在跑：狀態照舊，多一個小標
+                    if s.status != "background", let bg = s.background, !bg.isEmpty {
+                        Label("背景 \(bg.count)", systemImage: "hourglass")
+                            .font(.caption2.weight(.semibold)).foregroundStyle(.purple)
+                            .labelStyle(.titleAndIcon)
+                    }
                     if let summary = name.summary {
                         Text(summary).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
@@ -262,6 +268,9 @@ struct SessionRow: View {
     private var preview: (text: String, color: Color)? {
         if s.status == "waiting", let p = s.pending { return (p.headline, .orange) }
         if s.status == "working", !s.activity.isEmpty { return (s.activity, .secondary) }
+        if s.status == "background", let bg = s.background, let first = bg.first {
+            return ("背景：" + first + (bg.count > 1 ? "（共 \(bg.count) 件）" : ""), .purple)
+        }
         if !s.last_text.isEmpty { return (Self.plain(s.last_text), .secondary) }
         return nil
     }
@@ -299,7 +308,7 @@ struct SessionRow: View {
         return f
     }()
 
-    /// 一小時內講「幾分鐘前」，再久就講幾點（「6 小時前」看不出是今天早上還是昨晚）；做完的加上「做完」
+    /// 一小時內講「幾分鐘前」，再久就講幾點（「6 小時前」看不出是今天早上還是昨晚）；完工的加上「完工」（背景也跑完的時間）
     static func when(_ status: String, _ d: Date, now: Date = Date()) -> String {
         let t: String
         if now.timeIntervalSince(d) < 3600 {
@@ -311,7 +320,7 @@ struct SessionRow: View {
         } else {
             t = day.string(from: d)
         }
-        return status == "done" ? t + " 做完" : t
+        return status == "done" ? t + " 完工" : t
     }
 
     static func ago(_ d: Date, now: Date = Date()) -> String {
@@ -433,6 +442,7 @@ struct StatusBadge: View {
         switch status {
         case "waiting": return "questionmark"
         case "working": return "ellipsis"
+        case "background": return "hourglass"
         case "done": return "checkmark"
         case "idle": return "moon.zzz.fill"
         default: return "circle.dotted"
