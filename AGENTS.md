@@ -127,7 +127,7 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
 - **v2.1.310 的權限通知只寫「Claude needs your permission」**，沒有工具名：工具名改由後端 `transcript.awaiting` 判斷（拿不準就不講），不要拿「對話最後一則工具」（subagent、平行呼叫都會指錯）。
 - **bash 變數後面直接接全形字**（`$PORT（`）在 `set -u` 底下會被當成變數名的一部分而炸掉，一律寫 `${PORT}`。
 - **「背景跑」不是 hook 給的狀態**：列表時看 claude 程序底下還活著的 Bash 工具 shell（指令含 `shell-snapshots/snapshot-`）。
-  done／idle＋有背景＝`background`；背景全部結束時 `sessions.check_background`（每 10 秒，只查記下來的 pid）把完工時間改成那一刻、這時才推「完工」。
+  done／idle＋有背景＝`background`；背景全部結束時 `sessions.check_background`（每 10 秒，只查記下來的 pid）把完工時間改成第一次看到結束的那一刻，**再等一輪**還停在完工才推「完工」：背景結束時 Claude Code 會叫醒模型接著做，當下就推會推兩次（2026-11-08 審查）。醒來那一輪做完由 Stop 自己推，看門的不再推。
   背景 subagent、派到別台的工作不是子程序，偵測不到。假資料 scenario 用 `"background": ["指令", …]`（規格 `docs/background-status-spec.md`）。
 - **輸入框叫出鍵盤時題目卡會收成兩行**，只限有可以打字的那一項；確認頁、信任資料夾不收，不然選項整個不見、打的字又送不出去（2026-10-25）。
 
