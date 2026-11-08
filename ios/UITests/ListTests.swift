@@ -6,7 +6,7 @@ final class ListTests: XCTestCase {
 
     func testGroupsInOrderAndIdleFolded() throws {
         let app = try launchApp(scenario: "many")
-        let titles = ["星號 · 1", "等你回答 · 1", "做完了 · 1", "待命 · 6"]
+        let titles = ["星號 · 1", "等你回答 · 1", "背景跑 · 1", "完工 · 1", "待命 · 6"]
         let headers = titles.map { app.any($0) }
         XCTAssertTrue(headers[0].waitForExistence(timeout: 15), "沒有星號區")
         for (t, h) in zip(titles, headers) { XCTAssertTrue(h.exists, "少了「\(t)」") }
@@ -15,12 +15,17 @@ final class ListTests: XCTestCase {
         // 收合狀態記在手機上（@AppStorage），測試前後要一樣：點兩下，各看一次
         let wasOpen = app.staticTexts["palrogue"].exists
         shot(app, wasOpen ? "expanded" : "folded")
-        headers[3].tap()
+        // 背景跑多一區之後，待命標頭被擠到底下的搜尋框後面：先捲上來再點，不然點到搜尋框
+        app.swipeUp()
+        headers[4].tap()
+        // 展開的列在畫面外不會建出來，再捲一次才找得到
+        app.swipeUp()
         let flipped = NSPredicate(format: "exists == %@", NSNumber(value: !wasOpen))
         expectation(for: flipped, evaluatedWith: app.staticTexts["palrogue"])
         waitForExpectations(timeout: 5)
         shot(app, wasOpen ? "folded" : "expanded")
-        headers[3].tap()
+        for _ in 0..<3 where !headers[4].isHittable { app.swipeDown() }
+        headers[4].tap()
     }
 
     func testSearchFindsFoldedIdle() throws {
@@ -100,9 +105,25 @@ final class ListTests: XCTestCase {
         let row = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "ledger")).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 15))
         // 假資料的 ledger 是 10/24 09:40（UTC）做完的，早就超過一小時：要寫出幾點，不是「幾小時前」
-        XCTAssertTrue(row.label.contains("做完"), "做完的那一列沒寫什麼時候做完：\(row.label)")
+        XCTAssertTrue(row.label.contains("完工"), "完工的那一列沒寫什麼時候完工：\(row.label)")
         XCTAssertFalse(row.label.contains("小時前"), "做完很久了還是寫「幾小時前」：\(row.label)")
         shot(app, "done-when")
+    }
+
+    /// 回合結束但背景還在跑的，要跟完工的分開，而且講得出在跑什麼（背景完工標示，2026-11-08）
+    func testBackgroundSeparateFromDone() throws {
+        let app = try launchApp(scenario: "many")
+        let row = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "pager")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 15))
+        XCTAssertTrue(row.label.contains("waitfor next-champ"), "背景跑的那一列沒寫在跑什麼：\(row.label)")
+        XCTAssertTrue(row.label.contains("共 2 件"), "背景好幾件沒講件數：\(row.label)")
+        XCTAssertFalse(row.label.contains("完工"), "背景還在跑卻標完工：\(row.label)")
+        let bg = app.any("背景跑 · 1"), done = app.any("完工 · 1")
+        XCTAssertTrue(bg.exists && done.exists, "背景跑與完工沒有分兩區")
+        // 等你回答的同時背景在跑：狀態照舊，多一個「背景 1」小標
+        let atlas = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "atlas")).firstMatch
+        XCTAssertTrue(atlas.label.contains("背景 1"), "等你回答的那一列沒標背景數：\(atlas.label)")
+        shot(app, "background")
     }
 
     func testEmpty() throws {

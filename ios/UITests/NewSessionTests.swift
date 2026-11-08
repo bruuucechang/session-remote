@@ -14,7 +14,8 @@ final class NewSessionTests: XCTestCase {
         XCTAssertFalse(start.isEnabled, "還沒選資料夾就能按開始")
         app.buttons["peter"].tap()
         // 先選資料夾再打字：鍵盤起來之後下面的資料夾會被蓋住
-        let notes = app.staticTexts["notes"].firstMatch
+        // 用資料夾按鈕找：staticTexts 會先找到後面列表「待命」收合標頭裡的 notes（點不到）
+        let notes = app.buttons["notes"].firstMatch
         XCTAssertTrue(notes.waitForExistence(timeout: 10))
         notes.tap()
         XCTAssertTrue(start.isEnabled, "選了資料夾還不能按開始")

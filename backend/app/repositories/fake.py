@@ -10,7 +10,8 @@ scenario.json 的形狀：
                  "record": {sessions.json 裡那一筆：status、pending、activity…},
                  "transcript": "相對 scenario 的 .jsonl（可省）",
                  "starred": true（可省）, "close_fails": true（可省：關分頁丟 ItermError）,
-                 "write_fails": true（可省：送字丟 ItermError）}],
+                 "write_fails": true（可省：送字丟 ItermError）,
+                 "background": ["回合結束後還在跑的背景指令", …]（可省）}],
    "quota": {"rows": [agent-quota widget.json 的列；*ResetsAt 可寫 "+26h"＝從現在算起]}（可省＝沒有額度卡）}
 
 別的情境放在同一個資料夾的 scenario-<名字>.json，`reset("<名字>")` 換過去。
@@ -183,6 +184,14 @@ def list_claude():
     with _lock:
         return [ClaudeProc(pid=s["pid"], tty=s["tty"], config_dir=s.get("config_dir", ""), cwd=s.get("cwd", ""))
                 for s in _state["sessions"].values()]
+
+
+def background_shells() -> dict[int, list[str]]:
+    """scenario 的 "background": ["指令", …]＝這個 session 回合結束後還活著的背景 Bash（照真的格式包起來）。"""
+    pre = "/bin/zsh -c source ~/.claude/shell-snapshots/snapshot-zsh-0-fake.sh && eval '"
+    with _lock:
+        return {s["pid"]: [pre + c + "' < /dev/null" for c in s.get("background", [])]
+                for s in _state["sessions"].values() if s.get("background")}
 
 
 def alive(pid: int) -> bool:

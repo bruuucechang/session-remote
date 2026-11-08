@@ -40,7 +40,8 @@ def test_activity_payload_events():
     busy = {"working": 2, "waiting": 1, "done": 0, "headline": "animyria：要怎麼處理？"}
     p, prio = activity_payload(busy, {"working": 2, "waiting": 0, "done": 0, "headline": "x"}, 1000.0, start=False)
     assert p["aps"]["event"] == "update" and prio == 10 and "alert" in p["aps"]
-    assert p["aps"]["content-state"] == {"working": 2, "waiting": 1, "done": 0, "headline": "animyria：要怎麼處理？"}
+    assert p["aps"]["content-state"] == {"working": 2, "waiting": 1, "background": 0, "done": 0,
+                                         "headline": "animyria：要怎麼處理？"}
     p, prio = activity_payload(busy, busy, 1000.0, start=False)
     assert prio == 5 and "alert" not in p["aps"]
     idle = {"working": 0, "waiting": 0, "done": 3, "headline": "都做完了"}

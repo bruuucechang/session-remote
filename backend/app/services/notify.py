@@ -42,7 +42,7 @@ def _body(view: dict) -> tuple[str, str]:
         else:
             body = pending.get("message") or "等你回答"
     else:
-        body = "做完了：" + (view.get("last_text") or "")
+        body = "完工：" + (view.get("last_text") or "")
     return title, f"[{acct}] {body}"[:400]
 
 
@@ -126,7 +126,8 @@ def update_settings(**kw) -> dict:
 
 
 def should_alert(view: dict, cfg: dict) -> bool:
-    """跳不跳通知：等你回答一律跳；做完了的話，開了「只推星號」就只有標星的才跳。"""
+    """跳不跳通知：等你回答一律跳；完工（背景也跑完了）的話，開了「只推星號」就只有標星的才跳。
+    背景跑（回合結束但背景還在）不跳：等背景結束 sessions.check_background 會再叫一次。"""
     if view["status"] == "waiting":
         return True
     if view["status"] == "done":
@@ -174,9 +175,10 @@ def _summary(force: bool = False) -> None:
 
 def activity_payload(sm: dict, prev: dict | None, now: float, start: bool) -> tuple[dict, int]:
     """組 Live Activity 的推播內容。content-state 的欄位要跟 app 的 SessionsActivityAttributes.ContentState 一字不差。"""
-    state = {"working": sm["working"], "waiting": sm["waiting"], "done": sm["done"], "headline": sm["headline"]}
+    state = {"working": sm["working"], "waiting": sm["waiting"], "background": sm.get("background", 0),
+             "done": sm["done"], "headline": sm["headline"]}
     aps = {"timestamp": int(now), "content-state": state}
-    active = sm["working"] + sm["waiting"] > 0
+    active = sm["working"] + sm["waiting"] + sm.get("background", 0) > 0
     if start:
         aps.update({"event": "start", "attributes-type": "SessionsActivityAttributes", "attributes": {}})
     elif not active:
@@ -196,7 +198,7 @@ def _push_activity(sm: dict, prev: dict | None) -> None:
     acts = store.load("activities")
     updates = {t: v for t, v in acts.items() if v.get("kind") == "update"}
     starts = {t: v for t, v in acts.items() if v.get("kind") == "start"}
-    active = sm["working"] + sm["waiting"] > 0
+    active = sm["working"] + sm["waiting"] + sm.get("background", 0) > 0
     dead = []
     if updates:
         payload, prio = activity_payload(sm, prev, time.time(), start=False)

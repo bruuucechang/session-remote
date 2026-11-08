@@ -90,7 +90,7 @@ struct SessionDetailView: View {
                         Text(d.status == "working" ? "Claude 在工作，還沒有訊息。"
                              // waiting 卻沒抓到題目卡（讀不到畫面）：打字可能被選單吃掉，叫他先看畫面
                              : d.status == "waiting" ? "Claude 在等你回答，從右上角打開終端機畫面看看。"
-                             : ["done", "idle"].contains(d.status) ? "從下面打字開始。"
+                             : ["done", "idle", "background"].contains(d.status) ? "從下面打字開始。"
                              : "Claude 正在啟動，開好之後從下面打字。")
                     }
                 }

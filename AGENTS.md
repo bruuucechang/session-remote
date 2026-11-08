@@ -92,7 +92,7 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
 - **巢狀的 `claude -p`**（被 Bash 工具或腳本叫起來的）往上找 tty 會找到外層 session：`report.mjs` 路上碰到沒有 tty 的 claude 就不送。
   subagent 的工具事件帶 `agent_id`，主線程在問選項題時不准把狀態改回工作中。
 - **回覆裡的換行照送**：文字一次 `write` 進去會被當成貼上、換行保留，送出靠之後另外按的 Enter（2026-10-21 實測）。
-- **即時狀態的 content-state 欄位名**（working／waiting／done／headline）在 `notify.activity_payload` 與
+- **即時狀態的 content-state 欄位名**（working／waiting／background／done／headline）在 `notify.activity_payload` 與
   `ios/Shared/SharedConfig.swift` 各寫一次，改一邊另一邊沒改，推播來的更新會解不開、畫面停在舊的，不報錯。
 - **模擬器截圖要用 `launch --terminate-running-process`**：有了即時狀態之後系統會自己在背景把 app 叫起來，
   一般的 `simctl launch` 只是把那個舊程序拉到前面，SR_URL 這些環境變數沒帶到，畫面變成「連到筆電」。
@@ -126,6 +126,9 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
 - **`launchctl bootout` 是非同步的**：馬上 bootstrap 會「Bootstrap failed: 5」而服務整個停掉；`tools/install-agent.sh` 會等卸載完。
 - **v2.1.310 的權限通知只寫「Claude needs your permission」**，沒有工具名：工具名改由後端 `transcript.awaiting` 判斷（拿不準就不講），不要拿「對話最後一則工具」（subagent、平行呼叫都會指錯）。
 - **bash 變數後面直接接全形字**（`$PORT（`）在 `set -u` 底下會被當成變數名的一部分而炸掉，一律寫 `${PORT}`。
+- **「背景跑」不是 hook 給的狀態**：列表時看 claude 程序底下還活著的 Bash 工具 shell（指令含 `shell-snapshots/snapshot-`）。
+  done／idle＋有背景＝`background`；背景全部結束時 `sessions.check_background`（每 10 秒，只查記下來的 pid）把完工時間改成那一刻、這時才推「完工」。
+  背景 subagent、派到別台的工作不是子程序，偵測不到。假資料 scenario 用 `"background": ["指令", …]`（規格 `docs/background-status-spec.md`）。
 - **輸入框叫出鍵盤時題目卡會收成兩行**，只限有可以打字的那一項；確認頁、信任資料夾不收，不然選項整個不見、打的字又送不出去（2026-10-25）。
 
 ## 做過但結論是「不做」的

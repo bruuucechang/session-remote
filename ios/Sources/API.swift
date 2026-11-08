@@ -49,6 +49,8 @@ struct SessionSummary: Codable, Identifiable, Hashable {
     let context_pct: Int?
     /// 使用者標了星號（存在筆電，跟著 iTerm2 分頁走）
     let starred: Bool?
+    /// 回合結束後還在跑的背景任務，一件一行（waitfor 的 label 或指令）；工作中時筆電不算、給空的
+    let background: [String]?
 }
 
 struct Message: Codable, Identifiable, Hashable {

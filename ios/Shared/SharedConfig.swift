@@ -25,9 +25,25 @@ struct SessionsActivityAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
         var working: Int
         var waiting: Int
+        /// 回合結束但背景還在跑的；舊版筆電沒送這個欄位，解成 0
+        var background: Int = 0
         var done: Int
         var headline: String
     }
+}
+
+extension SessionsActivityAttributes.ContentState {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        working = try c.decode(Int.self, forKey: .working)
+        waiting = try c.decode(Int.self, forKey: .waiting)
+        background = try c.decodeIfPresent(Int.self, forKey: .background) ?? 0
+        done = try c.decode(Int.self, forKey: .done)
+        headline = try c.decode(String.self, forKey: .headline)
+    }
+
+    /// 還有東西在跑或在等你：即時狀態要留著
+    var active: Bool { working + waiting + background > 0 }
 }
 
 extension SessionSummary {
@@ -39,15 +55,18 @@ enum Summary {
     static func state(_ sessions: [SessionSummary]) -> SessionsActivityAttributes.ContentState {
         let waiting = sessions.filter { $0.status == "waiting" }
         let working = sessions.filter { $0.status == "working" }
+        let bg = sessions.filter { $0.status == "background" }
         let headline: String
         if let w = waiting.first {
             headline = "\(w.project)：\(w.pending?.headline ?? "等你回答")"
         } else if let w = working.first {
             headline = "\(w.project)：\(w.activity.isEmpty ? "工作中" : w.activity)"
+        } else if let b = bg.first {
+            headline = "\(b.project)：背景 \(b.background?.first ?? "")"
         } else {
-            headline = "都做完了"
+            headline = "都完工了"
         }
-        return .init(working: working.count, waiting: waiting.count,
+        return .init(working: working.count, waiting: waiting.count, background: bg.count,
                      done: sessions.filter { $0.status == "done" }.count, headline: String(headline.prefix(120)))
     }
 }
