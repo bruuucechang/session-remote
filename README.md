@@ -23,38 +23,88 @@ session-remote 把兩個帳號的工作階段合併到手機清單，方便離�
 <!-- /readme:about -->
 
 ## 架構
-<!-- readme:arch 2026-11-13 -->
-iPhone 上的 SwiftUI app 負責呈現清單、對話和操作畫面，透過 API 與 Mac 上的 FastAPI 服務溝通。小工具也會向服務取得資料。
+<!-- readme:arch 2026-11-16 -->
+iPhone 上的 SwiftUI app 顯示清單、對話和操作畫面，透過 API 與 Mac 上的 FastAPI 服務溝通。小工具使用 app 共用的連線設定，自行向服務讀取清單；鎖定畫面與動態島的即時狀態則可透過推播更新。
 
-後端分成三層：路由接收請求，服務處理工作階段等邏輯，資料存取層則負責與 iTerm2、程序、紀錄檔和推播服務等外部資源互動。Claude Code 的 hook 會把狀態回報給後端；對話內容則從本機紀錄讀取。專案沒有資料庫，也沒有網頁前端。
+Mac 端的路由接收請求，服務層處理工作階段、操作和通知，資料存取層負責讀取本機檔案、查詢程序、控制 iTerm2 和傳送推播。Claude Code 的 hook（`hooks/report.mjs`）把事件連同 tty 原封不動 POST 到本機的 /hook，狀態機在後端；對話內容從本機紀錄讀取。專案沒有資料庫或網頁前端，狀態存在 sessions.json 與 devices.json。
+
+服務由 launchd 常駐（`launchd/com.bruce.session-remote.plist` 跑 `run.sh`），uvicorn 綁 0.0.0.0:5391，但 middleware 只放行本機與 Tailscale 位址；/api 底下每支都要通行碼，/hook 與 /notify（給 office 等本機服務推訊息）只收本機。手機用 `tools/pair.py` 印的 QR code 配對，填好 Tailscale 網址與通行碼。手機不輪詢：盯著 /api/events 的 SSE，後端只送「有東西變了」，手機再重抓 /api/sessions。送字用 iTerm2 的 write text，能送進背景分頁、不搶畫面；選項題與權限提示從分頁畫面解析出來。額度讀 agent-quota 選單列 app 寫的 widget.json，context 用量讀 claude-skills 狀態列寫的檔案，都不連網。
 
 ```mermaid
 flowchart TD
-    App["iPhone app"] --> API["後端 API"]
-    Widget["iPhone 小工具"] --> API
-    Hook["Claude Code hook"] --> API
-    API --> Router["路由：接收請求"]
-    Router --> Service["服務：處理工作邏輯"]
-    Service --> Repo["資料存取：連接外部資源"]
-    Repo --> ITerm["iTerm2"]
-    Repo --> Files["本機紀錄與 JSON 檔"]
-    Repo --> APNs["Apple 推播服務"]
-    APNs --> App
+    Launchd["launchd：com.bruce.session-remote"] -->|"run.sh"| API["Mac 後端 FastAPI 0.0.0.0:5391（只放行本機與 Tailscale）"]
+    Claude["iTerm2 分頁裡的 Claude Code"] -->|"hook 事件"| Hook["hooks/report.mjs"]
+    Hook -->|"POST /hook（事件＋tty）"| API
+    App["iPhone app"] -->|"Tailscale：/api/* 帶通行碼"| API
+    API -->|"GET /api/events（SSE，只送「變了」）"| App
+    Widget["小工具"] -->|"App Group 裡的網址與通行碼，GET /api/sessions"| API
+    API -->|"osascript：讀畫面、write text 送字進背景分頁"| Claude
+    API -->|"ps：哪些分頁跑 claude、哪個帳號、背景程序"| Procs["Mac 程序"]
+    Files["對話紀錄 jsonl、agent-quota 的 widget.json、狀態列寫的 context 檔"] -->|"讀"| API
+    API -->|"讀寫"| State["sessions.json、devices.json"]
+    API -->|"JWT 簽章：等你回答／做完的通知、Live Activity 更新"| APNs["Apple 推播服務"]
+    APNs -->|"通知、鎖定畫面與動態島"| App
+    Pair["tools/pair.py"] -->|"QR code：Tailscale 網址＋通行碼"| App
+```
+
+### 手機介面
+
+```mermaid
+flowchart TD
+    Entry["ios/Sources/SessionRemoteApp.swift"] -->|建立狀態與顯示入口| Store["ios/Sources/Store.swift"]
+    List["ios/Sources/SessionListView.swift"] -->|讀取清單與狀態| Store
+    Detail["ios/Sources/SessionDetailView.swift"] -->|讀取狀態與草稿| Store
+    Store -->|清單與額度請求| API["ios/Sources/API.swift"]
+    Detail -->|對話與操作請求| API
+    Store -->|儲存網址與通行碼| Shared["ios/Shared/SharedConfig.swift"]
+    Widget["ios/Widgets/SessionWidgets.swift"] -->|讀取共用連線設定| Shared
+    Widget -->|取得工作階段清單| API
+    Widget -->|狀態資料| Views["ios/Shared/WidgetViews.swift"]
+    Live["ios/Sources/LiveActivityController.swift"] -->|"push token，POST /api/activities"| API
+    Store -->|"GET /api/events 串流，變了就重抓"| API
+```
+
+### Mac 後端
+
+```mermaid
+flowchart TD
+    Main["backend/app/main.py"] -->|掛載路由| API["backend/app/routers/api.py"]
+    Main -->|掛載路由| Hook["backend/app/routers/hook.py"]
+    API -->|清單與對話查詢| Sessions["backend/app/services/sessions.py"]
+    API -->|回覆與操作要求| Actions["backend/app/services/actions.py"]
+    Hook -->|工作階段事件| Sessions
+    Sessions -->|狀態變更| Notify["backend/app/services/notify.py"]
+    Actions -->|查找工作階段| Sessions
+    Sessions -->|查詢分頁與畫面| ITerm["backend/app/repositories/iterm.py"]
+    Actions -->|送字與控制分頁| ITerm
+    Sessions -->|讀取對話紀錄| Transcripts["backend/app/repositories/transcripts.py"]
+    Sessions -->|查詢 Claude 與背景程序| Procs["backend/app/repositories/procs.py"]
+    Notify -->|推播內容| APNs["backend/app/repositories/apns.py"]
+    Notify -->|通知設定與裝置資料| Store["backend/app/repositories/store.py"]
+    Sessions -->|"畫面上的選項題與權限提示"| Screen["backend/app/services/screen.py"]
+    Actions -->|"選選項要按哪些鍵"| Screen
+    Sessions -->|"狀態變了就加版本號"| Events["backend/app/services/events.py"]
+    API -->|"GET /api/events"| Events
+    Sessions -->|"回合結束後還活著的背景程序"| Background["backend/app/services/background.py"]
+    Sessions -->|"原始紀錄排成聊天訊息"| Transcript["backend/app/services/transcript.py"]
+    API -->|"GET /api/quota"| Quota["backend/app/services/quota.py"]
+    Quota -->|"讀 widget.json"| QuotaRepo["backend/app/repositories/quota.py"]
 ```
 
 | 資料夾 | 放什麼 |
 |---|---|
-| `backend/app/routers` | 接收 API 與 hook 請求的路由 |
-| `backend/app/services` | 工作階段、通知、畫面與其他業務邏輯 |
-| `backend/app/repositories` | iTerm2、程序、本機檔案與推播等外部資源的存取 |
-| `backend/tests` | 後端測試及測試資料 |
-| `ios/Sources` | iPhone app 的畫面、狀態與 API 程式 |
-| `ios/Shared`、`ios/Widgets` | 共用設定、畫面與小工具 |
-| `ios/UITests` | iPhone app 介面測試 |
+| `backend/app` | 後端入口、設定、路由、服務與資料存取程式 |
+| `backend/tests` | 後端測試、畫面範例與介面測試資料 |
+| `docs` | 規格、筆記與舊版說明 |
+| `docs/worklog` | 按日期記錄的工作日誌 |
 | `hooks` | Claude Code 狀態回報程式 |
+| `ios/Sources` | iPhone app 畫面、狀態與 API 程式 |
+| `ios/Shared` | app 與小工具共用的設定和畫面 |
+| `ios/Widgets` | 小工具與即時狀態 |
+| `ios/Resources` | app 圖示等資源 |
+| `ios/UITests` | iPhone app 介面測試 |
 | `launchd` | Mac 常駐服務設定 |
 | `tools` | 安裝、配對、測試與其他工具 |
-| `docs` | 規格、筆記與工作日誌 |
 <!-- /readme:arch -->
 
 ## 怎麼跑
