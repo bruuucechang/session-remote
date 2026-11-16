@@ -19,6 +19,25 @@ final class DemoTests: XCTestCase {
         return app
     }
 
+    /// 英文介面（公開版 B8）：手機語言英文時配對頁、列表分區、題目卡、回答後的對話都是英文
+    func testEnglishDemo() throws {
+        let app = try launchApp(["SR_FIRSTRUN": "1"], language: "en")
+        let demo = app.buttons["Take a Look (Demo Mode)"]
+        XCTAssertTrue(demo.waitForExistence(timeout: 10), "英文配對頁沒有「Take a Look」")
+        demo.tap()
+        XCTAssertTrue(app.staticTexts["shop"].waitForExistence(timeout: 10), "展示模式沒有假資料列表")
+        XCTAssertTrue(app.any("Waiting for you").exists, "分區標題不是英文")
+        XCTAssertFalse(app.any("等你回答").exists, "英文介面還有中文分區標題")
+        shot(app, "en-list")
+        app.row("shop").tap()
+        let fly = option(app, "Fly.io")
+        XCTAssertTrue(fly.waitForExistence(timeout: 10), "題目卡沒出來")
+        XCTAssertTrue(app.any("Where should it be deployed?").exists, "假資料題目不是英文")
+        fly.tap()
+        XCTAssertTrue(app.any("Chose: Fly.io").waitForExistence(timeout: 10), "按了選項對話沒變（或不是英文）")
+        shot(app, "en-answered")
+    }
+
     func testAnswerQuestionAndExit() throws {
         let app = try enterDemo()
         app.row("shop").tap()

@@ -58,13 +58,13 @@ enum Summary {
         let bg = sessions.filter { $0.status == "background" }
         let headline: String
         if let w = waiting.first {
-            headline = "\(w.project)：\(w.pending?.headline ?? "等你回答")"
+            headline = String(localized: "\(w.project)：\(w.pending?.headline ?? String(localized: "等你回答"))")
         } else if let w = working.first {
-            headline = "\(w.project)：\(w.activity.isEmpty ? "工作中" : w.activity)"
+            headline = String(localized: "\(w.project)：\(w.activity.isEmpty ? String(localized: "工作中") : w.activity)")
         } else if let b = bg.first {
-            headline = "\(b.project)：背景 \(b.background?.first ?? "")"
+            headline = String(localized: "\(b.project)：背景 \(b.background?.first ?? "")")
         } else {
-            headline = "都完工了"
+            headline = String(localized: "都完工了")
         }
         return .init(working: working.count, waiting: waiting.count, background: bg.count,
                      done: sessions.filter { $0.status == "done" }.count, headline: String(headline.prefix(120)))

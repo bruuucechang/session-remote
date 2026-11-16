@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # 在無頭模擬器跑 iOS app 並截圖（不開 Simulator 視窗、不搶畫面）。
 #   tools/sim-shot.sh <輸出.png> [要打開的 iTerm2 分頁 id]
+# SR_LANG=en 用英文介面跑（只換這個 app 的語言，模擬器本身不動）
 # 要先有 build：cd ios && xcodebuild ... -derivedDataPath build/dd build
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -13,7 +14,8 @@ xcrun simctl install "$UDID" "$DIR/ios/build/dd/Build/Products/Debug-iphonesimul
 xcrun simctl terminate "$UDID" com.bruuucechang.sessionremote 2>/dev/null || true
 TOKEN=$(grep ^SESSION_REMOTE_TOKEN "$DIR/.env" | cut -d= -f2)
 SIMCTL_CHILD_SR_URL="http://127.0.0.1:${API_PORT:-5391}" SIMCTL_CHILD_SR_TOKEN="$TOKEN" SIMCTL_CHILD_SR_OPEN="${2:-}" \
-  xcrun simctl launch --terminate-running-process "$UDID" com.bruuucechang.sessionremote >/dev/null
+  xcrun simctl launch --terminate-running-process "$UDID" com.bruuucechang.sessionremote \
+  ${SR_LANG:+-AppleLanguages "($SR_LANG)"} >/dev/null
 sleep "${WAIT:-5}"
 xcrun simctl io "$UDID" screenshot "$1" >/dev/null 2>&1
 echo "$1"

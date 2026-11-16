@@ -103,7 +103,7 @@ struct WaitingWidgetView: View {
                                 }
                                 Text(s.project).font(.caption.weight(.semibold)).lineLimit(1).foregroundStyle(.primary)
                             }
-                            Text(s.pending?.headline ?? "等你回答").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                            Text(s.pending?.headline ?? String(localized: "等你回答")).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                         }
                     .tint(.primary)
                     }
@@ -119,13 +119,13 @@ struct LockScreenView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 14) {
-                count(state.waiting, "等你", "questionmark.bubble.fill", .orange)
-                count(state.working, "工作中", "ellipsis.circle.fill", .blue)
+            HStack(spacing: 10) {
+                count(state.waiting, String(localized: "等你"), "questionmark.bubble.fill", .orange)
+                count(state.working, String(localized: "工作中"), "ellipsis.circle.fill", .blue)
                 if state.background > 0 {
-                    count(state.background, "背景", "hourglass.circle.fill", .purple)
+                    count(state.background, String(localized: "背景"), "hourglass.circle.fill", .purple)
                 }
-                count(state.done, "完工", "checkmark.circle.fill", .green)
+                count(state.done, String(localized: "完工"), "checkmark.circle.fill", .green)
                 Spacer()
             }
             Text(state.headline)
@@ -139,7 +139,8 @@ struct LockScreenView: View {
         HStack(spacing: 4) {
             Image(systemName: icon).foregroundStyle(color)
             Text("\(n)").font(.headline.monospacedDigit()).foregroundStyle(.white)
-            Text(label).font(.caption).foregroundStyle(.white.opacity(0.7))
+            // 英文的標籤比較長（Background），寧可縮小也不要斷成兩行
+            Text(label).font(.caption).foregroundStyle(.white.opacity(0.7)).lineLimit(1).minimumScaleFactor(0.6)
         }
     }
 }

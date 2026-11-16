@@ -23,7 +23,7 @@ struct ToolDetailView: View {
                 }
                 .padding()
             }
-            .navigationTitle(message.tool ?? "工具")
+            .navigationTitle(message.tool ?? String(localized: "工具"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } }
@@ -37,17 +37,17 @@ struct ToolDetailView: View {
         switch d.tool {
         case "Bash":
             if let desc = input["description"] { Text(desc).font(.subheadline.weight(.semibold)) }
-            section("指令") { code(input["command"] ?? "") }
+            section(String(localized: "指令")) { code(input["command"] ?? "") }
         case "Edit":
             path(input["file_path"])
-            section("改動") { DiffView(old: input["old_string"] ?? "", new: input["new_string"] ?? "") }
+            section(String(localized: "改動")) { DiffView(old: input["old_string"] ?? "", new: input["new_string"] ?? "") }
         case "Write":
             path(input["file_path"])
-            section("寫入的內容") { DiffView(old: "", new: input["content"] ?? "") }
+            section(String(localized: "寫入的內容")) { DiffView(old: "", new: input["content"] ?? "") }
         case "Read":
             path(input["file_path"])
         default:
-            section("輸入") {
+            section(String(localized: "輸入")) {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(input.keys.sorted(), id: \.self) { k in
                         VStack(alignment: .leading, spacing: 2) {
@@ -59,8 +59,8 @@ struct ToolDetailView: View {
             }
         }
         if let out = d.output {
-            section(d.is_error ? "錯誤" : "輸出") {
-                code(out.isEmpty ? "（沒有輸出）" : out + (d.output_truncated ? "\n…（太長，後面截掉了）" : ""),
+            section(d.is_error ? String(localized: "錯誤") : String(localized: "輸出")) {
+                code(out.isEmpty ? String(localized: "（沒有輸出）") : out + (d.output_truncated ? String(localized: "\n…（太長，後面截掉了）") : ""),
                      tint: d.is_error ? .red : nil)
             }
         } else {

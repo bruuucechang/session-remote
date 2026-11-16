@@ -129,9 +129,9 @@ struct SettingsView: View {
     }
 
     private func hint(_ err: String) -> String {
-        if err.contains("通行碼") {
-            return "在筆電上跑 tools/pair.py 重新掃 QR code，或照它印的通行碼重打"
+        if err.contains("通行碼") || err == L("通行碼不對") {  // l10n:skip 比對後端的錯誤
+            return String(localized: "在筆電上跑 tools/pair.py 重新掃 QR code，或照它印的通行碼重打")
         }
-        return "確認筆電開著、session-remote 服務在跑、手機連著 Tailscale；網址照 tools/pair.py 印的填"
+        return String(localized: "確認筆電開著、session-remote 服務在跑、手機連著 Tailscale；網址照 tools/pair.py 印的填")
     }
 }

@@ -16,11 +16,13 @@
 - 碰：`ios/Sources/API.swift`（換成可替換的資料來源）、`Store.swift`、配對／設定畫面、新的假資料檔
 - 不做：展示模式裡的小工具與動態島
 
-## B8 英文介面  [未開始]
+## B8 英文介面  [完成]
 - 目標：手機語言是英文時 app、小工具、題目卡翻譯、錯誤訊息都是英文；其他語言照舊繁中
 - 驗收：模擬器設英文與繁中各截一輪（清單、對話、題目卡、設定、展示模式）；`tools/uitest.sh --sim` 綠
 - 碰：`ios/` 的字串（String Catalog）、`project.yml` 的 `CFBundleLocalizations`、後端回給手機顯示的訊息
 - 不做：其他語言
+- 做法：String Catalog `ios/Resources/Localizable.xcstrings`（key＝繁中原文、241 條）；後端訊息由 app 的 `serverText()` 翻，後端沒改；核對工具 `tools/l10n-check.py`
+- 沒翻：推播與即時狀態推播的內容（別人沒有推播，規格裁示），作者自己用繁中
 
 ## B9 TestFlight 上傳到送審前  [未開始]
 - 目標：隱私權政策頁、export compliance、版本號就緒；Archive 上傳成功；App Store Connect 建好 app、填好測試資訊與公開連結設定，**停在送審前**

@@ -1,6 +1,7 @@
 # XcodeGen 規格：.xcodeproj 由這份產生（xcodegen generate），不要手改 .xcodeproj。
 name: SessionRemote
 options:
+  developmentLanguage: zh-Hant
   bundleIdPrefix: com.bruuucechang
   deploymentTarget:
     iOS: "17.0"
@@ -31,7 +32,7 @@ targets:
         CFBundleDisplayName: Sessions
         # 宣告繁中：不然手機語言是英文時，系統元件（確認框的取消、搜尋沒結果）會講英文
         CFBundleDevelopmentRegion: zh-Hant
-        CFBundleLocalizations: [zh-Hant]
+        CFBundleLocalizations: [zh-Hant, en]
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIBackgroundModes: [remote-notification]
@@ -62,6 +63,7 @@ targets:
       - Shared
       - Sources/API.swift
       - Sources/DemoBackend.swift
+      - Resources/Localizable.xcstrings
     entitlements:
       path: SessionWidgets.entitlements
       properties:
@@ -70,6 +72,8 @@ targets:
       path: Widgets/Info.plist
       properties:
         CFBundleDisplayName: Sessions
+        CFBundleDevelopmentRegion: zh-Hant
+        CFBundleLocalizations: [zh-Hant, en]
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
         NSExtension:

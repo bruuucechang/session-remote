@@ -73,7 +73,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     }
 
     func application(_: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
-        print("推播註冊失敗：\(error)")
+        print("推播註冊失敗：\(error)")  // l10n:skip log
     }
 
     // app 開著的時候也顯示通知橫幅

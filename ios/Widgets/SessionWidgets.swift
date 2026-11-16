@@ -29,12 +29,12 @@ struct WaitingProvider: TimelineProvider {
 
     private func load() async -> WaitingEntry {
         guard let api = SharedConfig.api else {
-            return WaitingEntry(date: .now, sessions: [], error: "先打開 app 連到筆電")
+            return WaitingEntry(date: .now, sessions: [], error: String(localized: "先打開 app 連到筆電"))
         }
         do {
             return WaitingEntry(date: .now, sessions: try await api.sessions().sessions, error: nil)
         } catch {
-            return WaitingEntry(date: .now, sessions: [], error: "連不上筆電")
+            return WaitingEntry(date: .now, sessions: [], error: String(localized: "連不上筆電"))
         }
     }
 }

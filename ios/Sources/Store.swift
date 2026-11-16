@@ -249,12 +249,12 @@ enum Keychain {
 enum Status {
     static func label(_ s: String) -> String {
         switch s {
-        case "waiting": return "等你回答"
-        case "working": return "工作中"
-        case "background": return "背景跑"
-        case "done": return "完工"
-        case "idle": return "待命"
-        default: return "未回報"
+        case "waiting": return String(localized: "等你回答")
+        case "working": return String(localized: "工作中")
+        case "background": return String(localized: "背景跑")
+        case "done": return String(localized: "完工")
+        case "idle": return String(localized: "待命")
+        default: return String(localized: "未回報")
         }
     }
 

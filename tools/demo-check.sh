@@ -23,5 +23,5 @@ import Foundation
 Task { @MainActor in exit(await run() ? 0 : 1) }
 RunLoop.main.run()
 SWIFT
-xcrun swiftc -o "$T/t" "$DIR/ios/Sources/API.swift" "$DIR/ios/Sources/DemoBackend.swift" "$T/main.swift"
+xcrun swiftc -o "$T/t" "$DIR/ios/Sources/API.swift" "$DIR/ios/Sources/DemoBackend.swift" "$DIR/ios/Shared/L10n.swift" "$T/main.swift"
 "$T/t"

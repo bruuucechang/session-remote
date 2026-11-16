@@ -237,7 +237,7 @@ struct SessionDetailView: View {
                 } else if d.status == "working" {
                     HStack(spacing: 8) {
                         ProgressView().controlSize(.small)
-                        Text(d.activity.isEmpty ? "工作中…" : d.activity)
+                        Text(d.activity.isEmpty ? String(localized: "工作中…") : d.activity)
                             .font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                         Spacer(minLength: 4)
                         Button(role: .destructive) { act { try await $0.interrupt(sessionID) } } label: {
@@ -264,8 +264,8 @@ struct SessionDetailView: View {
                 .accessibilityLabel("傳照片")
             Composer(
                 text: $text,
-                placeholder: detail?.prompt == nil ? "回覆…"
-                    : detail?.prompt?.type_key != nil ? "或自己打一個答案…" : "先按上面的選項",
+                placeholder: detail?.prompt == nil ? String(localized: "回覆…")
+                    : detail?.prompt?.type_key != nil ? String(localized: "或自己打一個答案…") : String(localized: "先按上面的選項"),
                 // 選單開著、又沒有可以打字的那一項：打的字會被吃掉，Enter 還會按下游標那一項，所以不給送
                 sending: sending,
                 blocked: detail?.prompt != nil && detail?.prompt?.type_key == nil,
@@ -289,7 +289,7 @@ struct SessionDetailView: View {
         // 只藏「Type something／Other」那一行（靠下面的輸入框打字）；權限提示的「No, and tell Claude…」、
         // 計畫核准的「Tell Claude what to change」、複選題打過字的那一行都還是按鈕
         let isTypeRow = { (o: PromptOption) in
-            o.key == p.type_key && (o.label.hasPrefix("Type something") || ["Other", "其他"].contains(o.label.trimmingCharacters(in: CharacterSet(charactersIn: "."))))
+            o.key == p.type_key && (o.label.hasPrefix("Type something") || ["Other", "其他"].contains(o.label.trimmingCharacters(in: CharacterSet(charactersIn: "."))))  // l10n:skip 比對 Claude Code 原文
         }
         let options = p.options.filter { !isTypeRow($0) && !$0.label.hasPrefix("Chat about") }
         let current = PromptMatch(pending: d.pending, prompt: p)
@@ -321,7 +321,7 @@ struct SessionDetailView: View {
                         Button { openTool = m } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "terminal")
-                                Text(m.text.isEmpty ? tool : "\(tool)：\(m.text)").lineLimit(2)
+                                Text(m.text.isEmpty ? tool : String(localized: "\(tool)：\(m.text)")).lineLimit(2)
                                 Spacer(minLength: 4)
                                 Image(systemName: "chevron.right").font(.caption2.weight(.semibold))
                             }
@@ -439,12 +439,12 @@ struct SessionDetailView: View {
         defer { uploading = false; photoItem = nil }
         do {
             guard let raw = try await item.loadTransferable(type: Data.self), let img = UIImage(data: raw) else {
-                error = "讀不到這張照片"
+                error = String(localized: "讀不到這張照片")
                 return
             }
             let jpeg = Self.shrink(img).jpegData(compressionQuality: 0.8) ?? raw
             let path = try await api.upload(sessionID, jpeg: jpeg)
-            text += (text.isEmpty || text.hasSuffix("\n") ? "" : "\n") + "（圖片：\(path)）"
+            text += (text.isEmpty || text.hasSuffix("\n") ? "" : "\n") + String(localized: "（圖片：\(path)）")
             inputFocused = true
         } catch {
             self.error = error.localizedDescription
@@ -564,12 +564,12 @@ private struct OptionButton: View {
         .disabled(disabled)
         .opacity(disabled ? 0.5 : 1)
         // 讀出來的順序：標籤、推薦、說明（不念左邊的編號圓圈）；複選題另外念勾了沒
-        .accessibilityLabel([label, recommended ? "推薦" : nil, description].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "，"))
+        .accessibilityLabel([label, recommended ? String(localized: "推薦") : nil, description].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: String(localized: "，")))
         .accessibilityValue(option.checked.map { $0 ? "已勾" : "沒勾" } ?? "")
     }
 
     static func split(_ label: String) -> (String, Bool) {
-        for tag in [" (Recommended)", "(Recommended)", "（Recommended）"] where label.hasSuffix(tag) {
+        for tag in [" (Recommended)", "(Recommended)", "（Recommended）"] where label.hasSuffix(tag) {  // l10n:skip 比對 Claude Code 原文
             return (String(label.dropLast(tag.count)).trimmingCharacters(in: .whitespaces), true)
         }
         return (label, false)
@@ -603,8 +603,8 @@ struct PromptMatch {
 
     var badge: String? {
         guard let q = question else { return nil }
-        let head = q.header ?? "選一個"
-        return total > 1 ? "\(head) · 第 \(index + 1)／\(total) 題" : head
+        let head = q.header ?? String(localized: "選一個")
+        return total > 1 ? String(localized: "\(head) · 第 \(index + 1)／\(total) 題") : head
     }
 
     func description(for label: String) -> String? {
@@ -642,35 +642,35 @@ struct PromptWords {
             .map { String(message[$0].split(separator: " ").last ?? "") } ?? awaitingTool
         if let review = prompt.review {
             kind = .review
-            badge = "確認答案 · 共 \(review.count) 題"
-            title = "要送出這幾題的答案嗎？"
+            badge = String(localized: "確認答案 · 共 \(review.count) 題")
+            title = String(localized: "要送出這幾題的答案嗎？")
         } else if pending?.kind != "ask",
                   prompt.options.contains(where: { ["Yes, I trust this folder", "Yes, proceed"].contains($0.label) }),
                   prompt.options.contains(where: { $0.label == "No, exit" }) {
             // 剛開、還沒回報過的 session 卡在這裡：hook 還沒跑，只有畫面上的選項
             kind = .trust
-            badge = "第一次在這個資料夾開 Claude"
+            badge = String(localized: "第一次在這個資料夾開 Claude")
             let name = (cwd as NSString).lastPathComponent
-            title = name.isEmpty ? "要信任這個資料夾嗎？" : "要信任「\(name)」這個資料夾嗎？"
+            title = name.isEmpty ? String(localized: "要信任這個資料夾嗎？") : String(localized: "要信任「\(name)」這個資料夾嗎？")
         } else if pending?.plan == true
                     // 權限通知可能把 hook 記的 plan 旗子蓋掉：畫面上是計畫核准的選項也算
                     || prompt.options.contains(where: { $0.label == "Tell Claude what to change" || $0.label.hasPrefix("Yes, and use auto mode") }) {
             kind = .plan
-            badge = "計畫核准"
-            title = message.isEmpty ? "計畫寫好了，要照著做嗎？" : message
+            badge = String(localized: "計畫核准")
+            title = message.isEmpty ? String(localized: "計畫寫好了，要照著做嗎？") : serverText(message)
         } else if pending?.kind == "ask" {
             kind = .ask
-            badge = match.badge ?? "選一個"
-            title = match.title ?? pending?.headline ?? "Claude 在等你選"
+            badge = match.badge ?? String(localized: "選一個")
+            title = match.title ?? pending?.headline ?? String(localized: "Claude 在等你選")
         } else if pending?.kind == "permission" {
             kind = .permission
-            badge = "要你允許"
-            title = tool.map { "Claude 要用 \($0)，允許嗎？" }
-                ?? (message.isEmpty || message.hasPrefix("Claude needs your permission") ? "Claude 要你允許，允許嗎？" : message)
+            badge = String(localized: "要你允許")
+            title = tool.map { String(localized: "Claude 要用 \($0)，允許嗎？") }
+                ?? (message.isEmpty || message.hasPrefix("Claude needs your permission") ? String(localized: "Claude 要你允許，允許嗎？") : message)
         } else {
             kind = .other
-            badge = "Claude 在等你"
-            title = pending?.headline ?? "Claude 在等你選"
+            badge = String(localized: "Claude 在等你")
+            title = pending?.headline ?? String(localized: "Claude 在等你選")
         }
         self.tool = kind == .permission ? tool : nil
     }
@@ -680,26 +680,26 @@ struct PromptWords {
         let s = raw.hasSuffix(" (esc)") ? String(raw.dropLast(6)) : raw
         switch kind {
         case .review:
-            return ["Submit answers": "送出答案", "Cancel": "取消，回去改"][s] ?? s
+            return ["Submit answers": String(localized: "送出答案"), "Cancel": String(localized: "取消，回去改")][s] ?? s
         case .trust:
-            return ["No, exit": "不信任，離開", "Yes, I trust this folder": "信任這個資料夾",
-                    "Yes, proceed": "信任，繼續"][s] ?? s
+            return ["No, exit": String(localized: "不信任，離開"), "Yes, I trust this folder": String(localized: "信任這個資料夾"),
+                    "Yes, proceed": String(localized: "信任，繼續")][s] ?? s
         case .plan:
-            if let t = ["Yes, and use auto mode": "核准，接著自動做", "Yes, manually approve edits": "核准，每次改檔先問我",
-                        "Yes, and auto-accept edits": "核准，改檔不用問我", "Tell Claude what to change": "要改計畫（按了再打字）"][s] {
+            if let t = ["Yes, and use auto mode": String(localized: "核准，接著自動做"), "Yes, manually approve edits": String(localized: "核准，每次改檔先問我"),
+                        "Yes, and auto-accept edits": String(localized: "核准，改檔不用問我"), "Tell Claude what to change": String(localized: "要改計畫（按了再打字）")][s] {
                 return t
             }
             return s
         case .permission:
-            if s == "Yes" { return "允許" }
-            if s == "No" { return "不允許" }
-            if s.hasPrefix("No, and tell Claude") { return "不允許，告訴 Claude 怎麼做（按了再打字）" }
+            if s == "Yes" { return String(localized: "允許") }
+            if s == "No" { return String(localized: "不允許") }
+            if s.hasPrefix("No, and tell Claude") { return String(localized: "不允許，告訴 Claude 怎麼做（按了再打字）") }
             if s.hasPrefix("Yes, and don't ask again") {
                 // 後半段是規則（「for npm run build commands in …」），照原文留著
                 let rest = s.dropFirst("Yes, and don't ask again".count).trimmingCharacters(in: .whitespaces)
-                return rest.isEmpty ? "允許，之後不再問" : "允許，之後不再問：\(rest)"
+                return rest.isEmpty ? String(localized: "允許，之後不再問") : String(localized: "允許，之後不再問：\(rest)")
             }
-            if s.hasPrefix("Yes, allow all edits") { return "允許，這次 session 改檔都不再問" }
+            if s.hasPrefix("Yes, allow all edits") { return String(localized: "允許，這次 session 改檔都不再問") }
             return s
         case .ask, .other:
             return s
@@ -761,7 +761,7 @@ struct ConversationSearch: View {
                 ForEach(hits) { h in
                     Button { onPick(h.id) } label: {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(h.role == "user" ? "你" : h.role == "tool" ? (h.tool ?? "工具") : "Claude")
+                            Text(h.role == "user" ? String(localized: "你") : h.role == "tool" ? (h.tool ?? String(localized: "工具")) : "Claude")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(h.role == "user" ? Color.accentColor : .secondary)
                             Text(highlight(h.snippet)).font(.callout).lineLimit(3)
