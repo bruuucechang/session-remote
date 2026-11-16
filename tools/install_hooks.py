@@ -76,7 +76,12 @@ def main() -> int:
         return 0
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
-        bak = path.with_name(f"{path.name}.bak-{time.strftime('%Y%m%d-%H%M%S')}")
+        stamp = time.strftime('%Y%m%d-%H%M%S')
+        bak = path.with_name(f"{path.name}.bak-{stamp}")
+        n = 1
+        while bak.exists():  # 同一秒跑兩次不能蓋掉第一份（那份才是安裝前的原樣）
+            bak = path.with_name(f"{path.name}.bak-{stamp}-{n}")
+            n += 1
         shutil.copy2(path, bak)
         print(f"  備份：{bak}")
     tmp = path.with_name(path.name + ".tmp")

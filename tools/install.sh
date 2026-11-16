@@ -63,25 +63,6 @@ PORT="$( (grep -E '^API_PORT=' "$DIR/.env" 2>/dev/null || grep -E '^API_PORT=' "
 if [ "$DRY" = 1 ]; then "$PY" "$DIR/tools/install_hooks.py" --dry-run --port "$PORT"; else "$PY" "$DIR/tools/install_hooks.py" --port "$PORT"; fi
 
 # --- launchd ---
-PLIST_BODY="$(cat <<XML
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key><string>${LABEL}</string>
-  <key>ProgramArguments</key>
-  <array><string>/bin/bash</string><string>-lc</string><string>exec "${DIR}/run.sh"</string></array>
-  <key>EnvironmentVariables</key>
-  <dict><key>RELOAD</key><string></string></dict>
-  <key>RunAtLoad</key><true/>
-  <key>KeepAlive</key><true/>
-  <key>ThrottleInterval</key><integer>10</integer>
-  <key>StandardOutPath</key><string>${LOG}</string>
-  <key>StandardErrorPath</key><string>${LOG}</string>
-</dict>
-</plist>
-XML
-)"
 if [ "$DRY" = 1 ]; then
   say "  （試跑）寫入 $PLIST 並用 launchctl 啟動 ${LABEL}"
 else
@@ -89,7 +70,19 @@ else
     say "✗ 埠 ${PORT} 已經有別的程式在用（可能是另一份 session-remote）。改 .env 的 API_PORT 或先停掉它。"; exit 1
   fi
   mkdir -p "$(dirname "$PLIST")" "$(dirname "$LOG")"
-  printf '%s\n' "$PLIST_BODY" > "$PLIST"
+  # 用 plistlib 產生：路徑可能含 & 之類要跳脫的字元；給 bash -lc 的路徑另外用 shlex 加引號
+  "$PY" - "$PLIST" "$LABEL" "$DIR" "$LOG" <<'PY'
+import plistlib, shlex, sys
+plist, label, d, log = sys.argv[1:]
+with open(plist, "wb") as f:
+    plistlib.dump({
+        "Label": label,
+        "ProgramArguments": ["/bin/bash", "-lc", "exec " + shlex.quote(d + "/run.sh")],
+        "EnvironmentVariables": {"RELOAD": ""},  # 正式跑不要 --reload：會等 SSE 長連線關掉才重載
+        "RunAtLoad": True, "KeepAlive": True, "ThrottleInterval": 10,
+        "StandardOutPath": log, "StandardErrorPath": log,
+    }, f)
+PY
   plutil -lint "$PLIST" >/dev/null
   launchctl bootout "gui/$(id -u)/${LABEL}" 2>/dev/null || true
   # bootout 是非同步的：還沒卸載完就 bootstrap 會「Bootstrap failed: 5」

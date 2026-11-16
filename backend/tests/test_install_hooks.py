@@ -72,3 +72,13 @@ def test_foreign_report_hook_is_left_alone(tmp_path):
     d = json.loads(s.read_text())
     assert d["hooks"]["Stop"][0]["hooks"][0]["command"] == theirs
     assert len(d["hooks"]["Stop"]) == 1
+
+
+def test_same_second_rerun_keeps_original_backup(tmp_path):
+    s = tmp_path / "settings.json"
+    s.write_text('{"model": "original"}')
+    _run(s)
+    _run(s, "--port", "5400")  # 通常跟上一次在同一秒內
+    baks = sorted(tmp_path.glob("settings.json.bak-*"))
+    assert len(baks) == 2
+    assert any(json.loads(b.read_text()) == {"model": "original"} for b in baks)
