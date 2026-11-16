@@ -97,3 +97,14 @@ def test_path_with_shell_chars_survives_shell(tmp_path):
     ih.merge(st, report, "5400")  # 換埠仍認得是自己管的
     assert st["hooks"]["Stop"][0]["hooks"][0]["command"].endswith("Stop 5400")
     assert len(st["hooks"]["Stop"]) == 1
+
+
+def test_symlinked_settings_keeps_link(tmp_path):
+    real = tmp_path / "dotfiles" / "settings.json"
+    real.parent.mkdir()
+    real.write_text("{}")
+    link = tmp_path / "settings.json"
+    link.symlink_to(real)
+    _run(link)
+    assert link.is_symlink()
+    assert _count(real) == 7

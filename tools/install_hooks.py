@@ -68,7 +68,8 @@ def main() -> int:
     ap.add_argument("--settings", type=Path, default=None)
     ap.add_argument("--port", default="5391", help="服務的埠（.env 的 API_PORT）")
     a = ap.parse_args()
-    path = a.settings or default_settings()
+    # settings.json 可能是指向 dotfiles 的符號連結：改連結的目標，連結本身留著
+    path = (a.settings or default_settings()).resolve()
 
     settings = {}
     if path.exists():

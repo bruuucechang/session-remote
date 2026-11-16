@@ -62,7 +62,10 @@ run "$VENV/bin/pip" install -q --upgrade pip
 run "$VENV/bin/pip" install -q -r "$DIR/backend/requirements.txt"
 
 # --- hook ---
-PORT="$( (grep -E '^API_PORT=' "$DIR/.env" 2>/dev/null || grep -E '^API_PORT=' "$DIR/.env.example") | cut -d= -f2)"; PORT="${PORT:-5391}"
+# 跟 run.sh 一樣 source .env 取值（引號、行尾註解都照 shell 規則）；試跑時 .env 可能還沒建，退回範本
+ENVF="$DIR/.env"; [ -f "$ENVF" ] || ENVF="$DIR/.env.example"
+PORT="$(set -a; . "$ENVF"; printf '%s' "${API_PORT:-5391}")"
+case "$PORT" in ''|*[!0-9]*) say "✗ .env 的 API_PORT 不是數字：$PORT"; exit 1;; esac
 if [ "$DRY" = 1 ]; then "$PY" "$DIR/tools/install_hooks.py" --dry-run --port "$PORT"; else "$PY" "$DIR/tools/install_hooks.py" --port "$PORT"; fi
 
 # --- launchd ---
