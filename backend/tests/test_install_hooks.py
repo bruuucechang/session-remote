@@ -53,3 +53,22 @@ def test_non_default_port_is_passed(tmp_path):
     _run(s, "--port", "5400")
     d = json.loads(s.read_text())
     assert d["hooks"]["Stop"][0]["hooks"][0]["command"].endswith("Stop 5400")
+
+
+def test_rerun_with_new_port_updates_managed_hooks(tmp_path):
+    s = tmp_path / "settings.json"
+    _run(s)
+    _run(s, "--port", "5400")
+    d = json.loads(s.read_text())
+    assert _count(s) == 7
+    assert all(h["command"].endswith(" 5400") for gs in d["hooks"].values() for g in gs for h in g["hooks"])
+
+
+def test_foreign_report_hook_is_left_alone(tmp_path):
+    s = tmp_path / "settings.json"
+    theirs = 'node "$HOME/ext.mjs" "$HOME/Projects/session-remote/hooks/report.mjs" Stop'
+    s.write_text(json.dumps({"hooks": {"Stop": [{"hooks": [{"type": "command", "command": theirs}]}]}}))
+    _run(s, "--port", "5400")
+    d = json.loads(s.read_text())
+    assert d["hooks"]["Stop"][0]["hooks"][0]["command"] == theirs
+    assert len(d["hooks"]["Stop"]) == 1

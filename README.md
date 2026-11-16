@@ -109,7 +109,7 @@ flowchart TD
 
 ## 自己裝來用（不用 Apple 開發者帳號）
 
-需要：一台 Mac，裝好 [iTerm2](https://iterm2.com)、[Tailscale](https://tailscale.com)、node、python3，
+需要：一台 Mac，裝好 [iTerm2](https://iterm2.com)、[Tailscale](https://tailscale.com)、node、Python 3.10 以上，
 在 iTerm2 裡跑 Claude Code；iPhone 也裝 Tailscale、登入同一個帳號。
 
 1. iPhone 從 TestFlight 公開連結裝 Sessions（連結上線後補在這裡）。

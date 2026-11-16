@@ -21,19 +21,25 @@ run() { if [ "$DRY" = 1 ]; then say "  （試跑）$*"; else "$@"; fi; }
 missing=0
 [ -d /Applications/iTerm.app ] || { say "✗ 沒有 iTerm2（https://iterm2.com）；只有 iTerm2 裡的 Claude Code 會出現在手機上"; missing=1; }
 command -v node >/dev/null || { say "✗ 沒有 node（Claude Code 的 hook 要用）"; missing=1; }
-command -v python3 >/dev/null || { say "✗ 沒有 python3"; missing=1; }
+# 後端要 Python 3.10 以上（型別寫法與 requirements 的版本）；Apple 內建的 python3 是 3.9，挑一個夠新的
+PY=""
+for c in python3.14 python3.13 python3.12 python3.11 python3.10 python3; do
+  p="$(command -v "$c" 2>/dev/null)" || continue
+  "$p" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null && { PY="$p"; break; }
+done
+[ -n "$PY" ] || { say "✗ 沒有 Python 3.10 以上（Apple 內建的是 3.9）；用 brew install python 或 python.org 裝一個"; missing=1; }
 TS=""
 if command -v tailscale >/dev/null; then TS="tailscale"
 elif [ -x /Applications/Tailscale.app/Contents/MacOS/Tailscale ]; then TS="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
 else say "✗ 沒有 Tailscale（https://tailscale.com，Mac 和 iPhone 都要裝、登入同一個帳號）"; missing=1; fi
 [ "$missing" = 0 ] || exit 1
-say "✓ iTerm2、node、python3、Tailscale 都在"
+say "✓ iTerm2、node、Python（${PY}）、Tailscale 都在"
 
 # --- .env 與通行碼 ---
 if [ ! -f "$DIR/.env" ]; then run cp "$DIR/.env.example" "$DIR/.env"; fi
 if [ "$DRY" = 0 ] && ! grep -qE '^SESSION_REMOTE_TOKEN=.+' "$DIR/.env"; then
-  TOKEN="$(python3 -c 'import secrets;print(secrets.token_urlsafe(24))')"
-  python3 - "$DIR/.env" "$TOKEN" <<'PY'
+  TOKEN="$("$PY" -c 'import secrets;print(secrets.token_urlsafe(24))')"
+  "$PY" - "$DIR/.env" "$TOKEN" <<'PY'
 import sys, re, pathlib
 p = pathlib.Path(sys.argv[1]); t = p.read_text()
 line = f"SESSION_REMOTE_TOKEN={sys.argv[2]}"
@@ -47,14 +53,14 @@ fi
 VENV="$DIR/backend/.venv"
 if [ ! -x "$VENV/bin/uvicorn" ]; then
   say "▶ 建立 Python 環境…"
-  run python3 -m venv "$VENV"
+  run "$PY" -m venv "$VENV"
   run "$VENV/bin/pip" install -q --upgrade pip
   run "$VENV/bin/pip" install -q -r "$DIR/backend/requirements.txt"
 fi
 
 # --- hook ---
 PORT="$( (grep -E '^API_PORT=' "$DIR/.env" 2>/dev/null || grep -E '^API_PORT=' "$DIR/.env.example") | cut -d= -f2)"; PORT="${PORT:-5391}"
-if [ "$DRY" = 1 ]; then python3 "$DIR/tools/install_hooks.py" --dry-run --port "$PORT"; else python3 "$DIR/tools/install_hooks.py" --port "$PORT"; fi
+if [ "$DRY" = 1 ]; then "$PY" "$DIR/tools/install_hooks.py" --dry-run --port "$PORT"; else "$PY" "$DIR/tools/install_hooks.py" --port "$PORT"; fi
 
 # --- launchd ---
 PLIST_BODY="$(cat <<XML
@@ -92,7 +98,7 @@ else
   ok=0
   for _ in $(seq 30); do curl -sf "http://127.0.0.1:${PORT}/health" >/dev/null && { ok=1; break; }; sleep 1; done
   [ "$ok" = 1 ] || { say "✗ 服務 30 秒內沒起來，看 $LOG"; exit 1; }
-  say "✓ 服務起來了（開機會自己啟動；log：$LOG）"
+  say "✓ 服務起來了（開機會自己啟動；log：${LOG}）"
 fi
 
 # --- 配對 ---

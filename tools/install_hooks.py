@@ -5,12 +5,13 @@
 
 - 預設改 $CLAUDE_CONFIG_DIR/settings.json，沒設就是 ~/.claude/settings.json。
 - 改之前先備份成 settings.json.bak-<時間>；檔案不存在就新建。
-- 重跑安全：某個事件底下已經有指令含 report.mjs，就不再加。
+- 重跑安全：某個事件底下已經有指令含 report.mjs 就不再加；是這支寫的格式而埠或路徑變了，就改成新的。
 - 用 node 直接跑、不包 shell：report.mjs 用父程序 pid 快取 tty，包一層 shell 快取永遠不中。
 """
 import argparse
 import json
 import os
+import re
 import shutil
 import sys
 import time
@@ -25,18 +26,30 @@ def default_settings() -> Path:
     return Path(base).expanduser() / "settings.json"
 
 
+# 這支工具自己寫的格式：node "<…/hooks/report.mjs>" <事件>[ <埠>]。只有這種會被改寫（換埠、搬 repo 後重裝）；
+# 別的寫法（例如作者自己包一層 ext.mjs）當成使用者自己管的，看到就不加也不動。
+MANAGED = re.compile(r'^node "[^"]*/hooks/report\.mjs" \w+( \d+)?$')
+
+
 def merge(settings: dict, report: Path, port: str = "5391") -> list[str]:
-    """把缺的事件加進 settings，回傳加了哪些事件。埠不是預設的 5391 才帶在參數後面。"""
+    """把缺的或過期的事件寫進 settings，回傳改了哪些事件。埠不是預設的 5391 才帶在參數後面。"""
     hooks = settings.setdefault("hooks", {})
     suffix = "" if port in ("", "5391") else f" {port}"
-    added = []
+    changed = []
     for ev in EVENTS:
+        want = f'node "{report}" {ev}{suffix}'
         groups = hooks.setdefault(ev, [])
-        if any("report.mjs" in h.get("command", "") for g in groups for h in g.get("hooks", [])):
+        mine = [h for g in groups for h in g.get("hooks", []) if "report.mjs" in h.get("command", "")]
+        if not mine:
+            groups.append({"hooks": [{"type": "command", "command": want, "async": True}]})
+            changed.append(ev)
             continue
-        groups.append({"hooks": [{"type": "command", "command": f'node "{report}" {ev}{suffix}', "async": True}]})
-        added.append(ev)
-    return added
+        for h in mine:
+            if MANAGED.match(h.get("command", "")) and h["command"] != want:
+                h["command"] = want
+                if ev not in changed:
+                    changed.append(ev)
+    return changed
 
 
 def main() -> int:
@@ -59,7 +72,7 @@ def main() -> int:
         print(f"✓ hook 已經掛好了（{path}）")
         return 0
     if a.dry_run:
-        print(f"（試跑）會在 {path} 加上：{', '.join(added)}")
+        print(f"（試跑）會在 {path} 加上或更新：{', '.join(added)}")
         return 0
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
@@ -69,7 +82,7 @@ def main() -> int:
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(json.dumps(settings, ensure_ascii=False, indent=2) + "\n")
     tmp.replace(path)
-    print(f"✓ 在 {path} 加上 hook：{', '.join(added)}")
+    print(f"✓ 在 {path} 加上或更新 hook：{', '.join(added)}")
     return 0
 
 
