@@ -14,12 +14,14 @@
 <!-- /readme:recent -->
 
 ## 這是什麼
-<!-- readme:about 2026-11-13 -->
-session-remote 把兩個帳號的工作階段合併到手機清單，方便離開電腦時查看對話、回答問題、處理權限提示、輸入文字、中斷工作或開啟新對話。
+<!-- readme:about 2026-11-17 -->
+session-remote 讓你用 iPhone 查看和操作 Mac 上 iTerm2 裡的 Claude Code 工作階段。
 
-手機 app 也能顯示背景工作、使用額度與 context 使用比例，並透過小工具、鎖定畫面和動態島呈現狀態。設定推播後，工作階段等待回覆或完成時可收到通知。
+它適合離開電腦時仍想掌握工作進度的人：手機可以合併查看兩個帳號的工作階段、閱讀對話、回答問題、處理權限提示、輸入文字、中斷工作或開啟新對話。
 
-目前服務與手機 app 已上線，主要操作流程已在 iPhone 上驗證。只有 iTerm2 裡的工作階段會出現在清單；Mac 必須保持喚醒，並開啟 Tailscale，手機才能連線。曾記錄一項待查疑慮：送出文字時若其他分頁剛好關閉，文字可能送到錯誤分頁。
+App 也能顯示背景工作、使用額度與 context 使用比例，並透過小工具、鎖定畫面和動態島呈現狀態。設定推播後，等待回覆或工作完成時可收到通知；尚未配對時也能使用展示模式體驗介面。
+
+Mac 服務與手機 app 已上線，主要操作流程已在 iPhone 上驗證；TestFlight 公開發布仍在準備中。只有 iTerm2 裡的工作階段會出現在清單，Mac 必須保持喚醒並開啟 Tailscale。另有一項待查疑慮：送出文字時，若其他分頁剛好關閉，文字可能送到錯誤分頁。
 <!-- /readme:about -->
 
 ## 架構
@@ -130,8 +132,21 @@ flowchart TD
 預設只認 `~/.claude` 一個設定目錄；Mac 要保持喚醒。
 
 ## 怎麼跑
-<!-- readme:run 2026-11-13 -->
-第一次使用時，先允許 macOS 控制 iTerm2，並將 iPhone 解鎖、接上同一個 Wi-Fi 或用線連接 Mac。
+<!-- readme:run 2026-11-17 -->
+需要一台安裝 iTerm2、Tailscale、Node.js 和 Python 3.10 以上版本的 Mac，並在 iTerm2 中執行 Claude Code。iPhone 也需要安裝 Tailscale，並登入同一個帳號。
+
+公開安裝流程可先預覽變更，再安裝後端、設定常駐服務並產生配對 QR code：
+
+```bash
+git clone https://github.com/bruuucechang/session-remote.git
+cd session-remote
+tools/install.sh --dry-run
+tools/install.sh
+```
+
+安裝後用 iPhone 相機掃描 QR code。已開啟的 Claude Code 必須重新啟動才會被看到；首次從手機操作時，請允許 macOS 控制 iTerm2。公開安裝流程的推播功能需要另行設定推播金鑰。
+
+開發環境可在專案根目錄執行：
 
 ```bash
 # 安裝並啟動 Mac 常駐服務
@@ -140,11 +155,11 @@ tools/install-agent.sh
 # 編譯並安裝 iPhone app
 tools/install-ios.sh
 
-# 顯示配對 QR code，用 iPhone 相機掃描
+# 顯示配對 QR code
 backend/.venv/bin/python tools/pair.py
 ```
 
-開發時若要直接執行，先停掉常駐服務：
+若要直接執行後端，先停止常駐服務：
 
 ```bash
 launchctl bootout gui/$(id -u)/com.bruce.session-remote
@@ -156,8 +171,12 @@ launchctl bootout gui/$(id -u)/com.bruce.session-remote
 ```bash
 # 後端單元測試
 cd backend && .venv/bin/pytest
+```
 
-# 介面測試：預設使用已解鎖的 iPhone
+以下指令在專案根目錄執行：
+
+```bash
+# 介面測試，預設使用已解鎖的 iPhone
 tools/uitest.sh
 
 # 使用模擬器進行介面測試
@@ -166,8 +185,6 @@ tools/uitest.sh --sim
 # 查看服務狀態
 curl -s localhost:5391/health
 ```
-
-以上指令除標明進入 `backend` 的測試指令外，皆在專案根目錄執行。
 <!-- /readme:run -->
 
 ## 工作日誌
