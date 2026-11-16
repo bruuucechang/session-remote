@@ -14,10 +14,10 @@ struct SessionListView: View {
 
     /// 依狀態分組，要你處理的排最上面
     private static let order: [(key: String, title: String)] = [
-        ("starred", "星號"), ("waiting", "等你回答"), ("working", "工作中"), ("background", "背景跑"), ("done", "完工"), ("idle", "待命"), ("", "其他"),
+        ("starred", String(localized: "星號")), ("waiting", String(localized: "等你回答")), ("working", String(localized: "工作中")), ("background", String(localized: "背景跑")), ("done", String(localized: "完工")), ("idle", String(localized: "待命")), ("", String(localized: "其他")),
     ]
 
-    private var sections: [(title: String, items: [SessionSummary])] {
+    private var sections: [(key: String, title: String, items: [SessionSummary])] {
         let known = Set(Self.order.map(\.key).filter { !$0.isEmpty && $0 != "starred" })
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         let pool = q.isEmpty ? store.sessions : store.sessions.filter {
@@ -28,7 +28,7 @@ struct SessionListView: View {
             let items = o.key == "starred"
                 ? pool.filter { $0.starred == true }
                 : pool.filter { $0.starred != true && (o.key.isEmpty ? !known.contains($0.status) : $0.status == o.key) }
-            return items.isEmpty ? nil : (o.title, items)
+            return items.isEmpty ? nil : (o.key, o.title, items)
         }
     }
 
@@ -61,13 +61,13 @@ struct SessionListView: View {
                 }
                 // 要你處理的（星號、等你回答）在最上面，額度卡接在後面
                 let urgent = Self.urgent
-                ForEach(sections.filter { urgent.contains($0.title) }, id: \.title) { section($0) }
+                ForEach(sections.filter { urgent.contains($0.key) }, id: \.key) { section($0) }
                 if !store.quota.isEmpty && query.isEmpty {
                     Section {
                         QuotaCard(accounts: store.quota)
                     }
                 }
-                ForEach(sections.filter { !urgent.contains($0.title) }, id: \.title) { section($0) }
+                ForEach(sections.filter { !urgent.contains($0.key) }, id: \.key) { section($0) }
             }
             .listStyle(.insetGrouped)
             .overlay {
@@ -138,7 +138,7 @@ struct SessionListView: View {
                     guard let s = closing, let api = store.api else { return }
                     Task {
                         do { try await api.close(s.id); rowErrors[s.id] = nil }
-                        catch { rowErrors[s.id] = "關不掉：\(error.localizedDescription)" }
+                        catch { rowErrors[s.id] = String(localized: "關不掉：\(error.localizedDescription)") }
                         await store.refresh()
                     }
                 }
@@ -165,12 +165,12 @@ struct SessionListView: View {
 }
 
 extension SessionListView {
-    static let urgent: Set<String> = ["星號", "等你回答"]
+    static let urgent: Set<String> = ["starred", "waiting"]
 
     @ViewBuilder
-    private func section(_ sec: (title: String, items: [SessionSummary])) -> some View {
+    private func section(_ sec: (key: String, title: String, items: [SessionSummary])) -> some View {
         // 搜尋時不收起，找到的就要看得到
-        let foldable = sec.title == "待命" && query.isEmpty
+        let foldable = sec.key == "idle" && query.isEmpty
         Section {
             if !foldable || idleExpanded {
                 ForEach(sec.items) { s in
@@ -200,7 +200,7 @@ extension SessionListView {
                             .rotationEffect(.degrees(idleExpanded ? 90 : 0))
                         Spacer()
                         if !idleExpanded {
-                            Text(sec.items.map { SessionName($0.name).project }.uniqued().joined(separator: "、"))
+                            Text(sec.items.map { SessionName($0.name).project }.uniqued().joined(separator: String(localized: "、")))
                                 .lineLimit(1).truncationMode(.tail)
                                 .textCase(nil)
                         }
@@ -208,7 +208,7 @@ extension SessionListView {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-            } else if sec.title == "星號" {
+            } else if sec.key == "starred" {
                 Label("\(sec.title) · \(sec.items.count)", systemImage: "star.fill")
             } else {
                 Text("\(sec.title) · \(sec.items.count)")
@@ -220,7 +220,7 @@ extension SessionListView {
         guard let api = store.api else { return }
         Task {
             do { try await api.star(s.id, s.starred != true); rowErrors[s.id] = nil }
-            catch { rowErrors[s.id] = "星號沒改到：\(error.localizedDescription)" }
+            catch { rowErrors[s.id] = String(localized: "星號沒改到：\(error.localizedDescription)") }
             await store.refresh()
         }
     }
@@ -281,7 +281,7 @@ struct SessionRow: View {
         if s.status == "waiting", let p = s.pending { return (p.headline, .orange) }
         if s.status == "working", !s.activity.isEmpty { return (s.activity, .secondary) }
         if s.status == "background", let bg = s.background, let first = bg.first {
-            return ("背景：" + first + (bg.count > 1 ? "（共 \(bg.count) 件）" : ""), .purple)
+            return (String(localized: "背景：") + first + (bg.count > 1 ? String(localized: "（共 \(bg.count) 件）") : ""), .purple)
         }
         if !s.last_text.isEmpty { return (Self.plain(s.last_text), .secondary) }
         return nil
@@ -297,7 +297,7 @@ struct SessionRow: View {
     private static let agoFormatter: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .short
-        f.locale = Locale(identifier: "zh_Hant_TW")
+        f.locale = appLocale
         return f
     }()
 
@@ -308,14 +308,14 @@ struct SessionRow: View {
 
     private static let clock: DateFormatter = {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "zh_Hant_TW")
+        f.locale = appLocale
         f.dateFormat = "HH:mm"
         return f
     }()
 
     private static let day: DateFormatter = {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "zh_Hant_TW")
+        f.locale = appLocale
         f.dateFormat = "M/d HH:mm"
         return f
     }()
@@ -326,17 +326,17 @@ struct SessionRow: View {
         if now.timeIntervalSince(d) < 3600 {
             t = ago(d, now: now)
         } else if Calendar.current.isDate(d, inSameDayAs: now) {
-            t = "今天 " + clock.string(from: d)
+            t = String(localized: "今天 ") + clock.string(from: d)
         } else if let y = Calendar.current.date(byAdding: .day, value: -1, to: now), Calendar.current.isDate(d, inSameDayAs: y) {
-            t = "昨天 " + clock.string(from: d)
+            t = String(localized: "昨天 ") + clock.string(from: d)
         } else {
             t = day.string(from: d)
         }
-        return status == "done" ? t + " 完工" : t
+        return status == "done" ? t + String(localized: " 完工") : t
     }
 
     static func ago(_ d: Date, now: Date = Date()) -> String {
-        now.timeIntervalSince(d) < 60 ? "剛剛" : agoFormatter.localizedString(for: d, relativeTo: now)
+        now.timeIntervalSince(d) < 60 ? String(localized: "剛剛") : agoFormatter.localizedString(for: d, relativeTo: now)
     }
 }
 
@@ -370,8 +370,8 @@ struct QuotaCard: View {
                         Text("沒有資料").font(.caption).foregroundStyle(.tertiary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     } else {
-                        bar("本週", a.weekly_pct, a.weekly_resets)
-                        bar("5 小時", a.short_pct, a.short_resets)
+                        bar(String(localized: "本週"), a.weekly_pct, a.weekly_resets)
+                        bar(String(localized: "5 小時"), a.short_pct, a.short_resets)
                     }
                 }
                 .opacity(a.stale ? 0.5 : 1)

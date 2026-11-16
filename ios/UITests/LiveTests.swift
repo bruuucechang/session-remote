@@ -115,6 +115,7 @@ final class LiveTests: XCTestCase {
     func testLiveTour() throws {
         XCTAssertTrue(try sandboxSessions().isEmpty, "測試資料夾已經有 session 開著，先關掉再跑")
         app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(zh-Hant)"]
         app.launchEnvironment = ["SR_URL": url, "SR_TOKEN": token, "SR_NEW": "1", "SR_DIR": dir]
         app.launch()
 

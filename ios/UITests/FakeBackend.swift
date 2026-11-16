@@ -62,9 +62,11 @@ enum FakeBackend {
 
 extension XCTestCase {
     /// 重來假資料、帶著假資料後端的網址開 app
-    func launchApp(_ extra: [String: String] = [:], scenario: String = "") throws -> XCUIApplication {
+    /// language：app 有英文之後跟著模擬器的系統語言走（模擬器預設英文），測試用中文 label 找元素，所以預設指定繁中
+    func launchApp(_ extra: [String: String] = [:], scenario: String = "", language: String = "zh-Hant") throws -> XCUIApplication {
         try FakeBackend.reset(scenario)
         let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(\(language))"]
         app.launchEnvironment = ["SR_URL": FakeBackend.url, "SR_TOKEN": FakeBackend.token].merging(extra) { $1 }
         app.launch()
         return app

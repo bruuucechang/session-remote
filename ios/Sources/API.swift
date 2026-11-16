@@ -29,7 +29,7 @@ struct Pending: Codable, Hashable {
 
     var headline: String {
         if kind == "ask", let q = questions?.first { return q.question }
-        return message ?? "等你回答"
+        return message.map(serverText) ?? String(localized: "等你回答")
     }
 }
 
@@ -224,7 +224,7 @@ struct API {
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(code) else {
             let detail = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["detail"] as? String
-            throw APIError(message: detail ?? "伺服器回 \(code)")
+            throw APIError(message: detail.map(serverText) ?? String(localized: "伺服器回 \(code)"))
         }
         return try JSONDecoder().decode(T.self, from: data)
     }
@@ -232,11 +232,11 @@ struct API {
     /// 系統的網路錯誤是英文（app 沒有在地化），換成講得出原因的中文
     static func describe(_ e: URLError) -> String {
         switch e.code {
-        case .notConnectedToInternet: return "手機沒有網路"
-        case .timedOut: return "等筆電回應逾時"
+        case .notConnectedToInternet: return String(localized: "手機沒有網路")
+        case .timedOut: return String(localized: "等筆電回應逾時")
         case .cannotConnectToHost, .cannotFindHost, .networkConnectionLost, .dnsLookupFailed:
-            return "連不到筆電的服務"
-        default: return "網路錯誤（\(e.code.rawValue)）"
+            return String(localized: "連不到筆電的服務")
+        default: return String(localized: "網路錯誤（\(e.code.rawValue)）")
         }
     }
 
@@ -374,7 +374,7 @@ struct API {
         var req = request("api/events")
         req.timeoutInterval = 60
         let (bytes, resp) = try await URLSession.shared.bytes(for: req)
-        guard (resp as? HTTPURLResponse)?.statusCode == 200 else { throw APIError(message: "事件串流連不上") }
+        guard (resp as? HTTPURLResponse)?.statusCode == 200 else { throw APIError(message: String(localized: "事件串流連不上")) }
         for try await line in bytes.lines {
             if line.hasPrefix("data:") { await onChange() }
         }

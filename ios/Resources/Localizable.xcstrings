@@ -1,0 +1,2378 @@
+{
+  "sourceLanguage": "zh-Hant",
+  "strings": {
+    "": {},
+    "\n…（太長，後面截掉了）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n… (Too long; the rest was cut off)"
+          }
+        }
+      }
+    },
+    " 完工": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " Done"
+          }
+        }
+      }
+    },
+    "%@ · %lld": {},
+    "%@ · 第 %lld／%lld 題": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · Question %lld of %lld"
+          }
+        }
+      }
+    },
+    "%@。確認筆電開著、session-remote 服務在跑、手機連著 Tailscale。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@. Make sure your laptop is on, the session-remote service is running, and your phone is connected to Tailscale."
+          }
+        }
+      }
+    },
+    "%@重置": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resets %@"
+          }
+        }
+      }
+    },
+    "%@：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "%@：背景 %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: Background %@"
+          }
+        }
+      }
+    },
+    "%lld": {},
+    "%lld%%": {},
+    "5 小時": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 hours"
+          }
+        }
+      }
+    },
+    "Bash：npm test": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bash: npm test"
+          }
+        }
+      }
+    },
+    "Bash：跑測試": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bash: Run tests"
+          }
+        }
+      }
+    },
+    "Claude": {},
+    "Claude 在工作，還沒有訊息。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude is working, no messages yet."
+          }
+        }
+      }
+    },
+    "Claude 在等你": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude is waiting for you"
+          }
+        }
+      }
+    },
+    "Claude 在等你回答，從右上角打開終端機畫面看看。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude is waiting for your answer. Tap the top right to open the terminal view."
+          }
+        }
+      }
+    },
+    "Claude 在等你選": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude is waiting for your choice"
+          }
+        }
+      }
+    },
+    "Claude 想執行 npm test": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude wants to run npm test"
+          }
+        }
+      }
+    },
+    "Claude 正在啟動，開好之後從下面打字。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude is starting up. Type below once it's ready."
+          }
+        }
+      }
+    },
+    "Claude 要你允許，允許嗎？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude needs your permission. Allow it?"
+          }
+        }
+      }
+    },
+    "Claude 要用 %@，允許嗎？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude wants to use %@. Allow it?"
+          }
+        }
+      }
+    },
+    "Codex": {},
+    "Sessions": {},
+    "api｜修好登入逾時": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "api｜Fix login timeout"
+          }
+        }
+      }
+    },
+    "atlas｜匯入十月的行程": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "atlas｜Import October trips"
+          }
+        }
+      }
+    },
+    "ctx %lld%%": {},
+    "hook 只收本機": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hook only accepts local connections"
+          }
+        }
+      }
+    },
+    "http://100.x.x.x:5391": {},
+    "iTerm2 沒回應（可能卡在對話框）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iTerm2 isn't responding (it may be stuck on a dialog)"
+          }
+        }
+      }
+    },
+    "kind 只能是 update 或 start": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kind must be update or start"
+          }
+        }
+      }
+    },
+    "notes｜整理會議紀錄": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "notes｜Organize meeting notes"
+          }
+        }
+      }
+    },
+    "notify 只收本機": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "notify only accepts local connections"
+          }
+        }
+      }
+    },
+    "shop｜把網站部署上線": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "shop｜Deploy the website"
+          }
+        }
+      }
+    },
+    "—": {},
+    "→ %@": {},
+    "、": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ", "
+          }
+        }
+      }
+    },
+    "下面是 app 內建的假資料，按什麼都不會連網。點「等你回答」的 session 試著回答看看。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Below is the app's built-in sample data. Nothing you tap connects to the network. Tap a session that's \"Waiting for you\" and try answering."
+          }
+        }
+      }
+    },
+    "不信任，離開": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Don't Trust, Exit"
+          }
+        }
+      }
+    },
+    "不允許": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Don't Allow"
+          }
+        }
+      }
+    },
+    "不允許，告訴 Claude 怎麼做（按了再打字）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Don't allow, tell Claude what to do (type after tapping)"
+          }
+        }
+      }
+    },
+    "不收這種檔案：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsupported file type: "
+          }
+        }
+      }
+    },
+    "不認得的按鍵：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unrecognized key: "
+          }
+        }
+      }
+    },
+    "中斷": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interrupt"
+          }
+        }
+      }
+    },
+    "事件串流連不上": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't connect to the event stream"
+          }
+        }
+      }
+    },
+    "今天 ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today "
+          }
+        }
+      }
+    },
+    "伺服器回 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server returned %lld"
+          }
+        }
+      }
+    },
+    "你": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You"
+          }
+        }
+      }
+    },
+    "例如：跑測試，紅的修好": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "e.g. Run tests and fix any failures"
+          }
+        }
+      }
+    },
+    "便宜、設定少，有免費額度": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cheap, little setup, free tier"
+          }
+        }
+      }
+    },
+    "信任這個資料夾": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trust This Folder"
+          }
+        }
+      }
+    },
+    "信任，繼續": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trust, Continue"
+          }
+        }
+      }
+    },
+    "假資料：送字失敗": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sample data: failed to send text"
+          }
+        }
+      }
+    },
+    "假資料：這個分頁關不掉": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sample data: this tab can't be closed"
+          }
+        }
+      }
+    },
+    "傳照片": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send Photo"
+          }
+        }
+      }
+    },
+    "儲存並連線": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save and Connect"
+          }
+        }
+      }
+    },
+    "允許": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow"
+          }
+        }
+      }
+    },
+    "允許，之後不再問": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow, don't ask again"
+          }
+        }
+      }
+    },
+    "允許，之後不再問：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow, don't ask again: %@"
+          }
+        }
+      }
+    },
+    "允許，這次 session 改檔都不再問": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow, don't ask again for edits this session"
+          }
+        }
+      }
+    },
+    "先打開 app 連到筆電": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the app and connect to your laptop first"
+          }
+        }
+      }
+    },
+    "先按上面的選項": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap an option above first"
+          }
+        }
+      }
+    },
+    "先看看（展示模式）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Take a Look (Demo Mode)"
+          }
+        }
+      }
+    },
+    "全部資料夾": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All Folders"
+          }
+        }
+      }
+    },
+    "共 %lld 個工具呼叫：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld tool calls: %@"
+          }
+        }
+      }
+    },
+    "其他": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other"
+          }
+        }
+      }
+    },
+    "再試一次": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try Again"
+          }
+        }
+      }
+    },
+    "剛剛": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Just now"
+          }
+        }
+      }
+    },
+    "匯入了 23 筆行程，接著跑測試。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imported 23 trips. Running tests next."
+          }
+        }
+      }
+    },
+    "匯入十月的行程，跑一次測試": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import October trips and run the tests once"
+          }
+        }
+      }
+    },
+    "即時更新": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Updates"
+          }
+        }
+      }
+    },
+    "取消": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        }
+      }
+    },
+    "取消星號": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unstar"
+          }
+        }
+      }
+    },
+    "取消，回去改": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel, go back and edit"
+          }
+        }
+      }
+    },
+    "只接受本機與 Tailscale 連線": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only accepts local and Tailscale connections"
+          }
+        }
+      }
+    },
+    "只能開在 ~/Projects 底下的資料夾": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only folders under ~/Projects can be opened"
+          }
+        }
+      }
+    },
+    "只適合前端": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frontend only"
+          }
+        }
+      }
+    },
+    "哪幾個 session 在等你、幾個在工作。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Which sessions are waiting for you and how many are working."
+          }
+        }
+      }
+    },
+    "回覆…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reply…"
+          }
+        }
+      }
+    },
+    "圖片資料壞了": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Image data is corrupted"
+          }
+        }
+      }
+    },
+    "在筆電上跑 `session-remote/tools/pair.py`，用相機掃它印出的 QR code 就會自動填好。也可以手動輸入。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run `session-remote/tools/pair.py` on your laptop and scan the QR code it prints with the camera to fill this in automatically. You can also enter it manually."
+          }
+        }
+      }
+    },
+    "在筆電上跑 tools/pair.py 重新掃 QR code，或照它印的通行碼重打": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run tools/pair.py on your laptop and scan the QR code again, or retype the passcode it prints"
+          }
+        }
+      }
+    },
+    "在筆電開分頁…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opening a tab on the laptop…"
+          }
+        }
+      }
+    },
+    "填了的話，Claude 一開起來就照著做；不填就開好等你。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If filled in, Claude starts on it right away; otherwise it opens and waits for you."
+          }
+        }
+      }
+    },
+    "完工": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        }
+      }
+    },
+    "完工只推標星號的": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notify Done Only for Starred"
+          }
+        }
+      }
+    },
+    "完成": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        }
+      }
+    },
+    "寫入的內容": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Content Written"
+          }
+        }
+      }
+    },
+    "專案名稱、資料夾、帳號都沒有這幾個字。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No project name, folder, or account contains these words."
+          }
+        }
+      }
+    },
+    "對話紀錄還在，之後可以用 claude --resume 接回。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The conversation history is still there. You can pick it back up later with claude --resume."
+          }
+        }
+      }
+    },
+    "小工具": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widgets"
+          }
+        }
+      }
+    },
+    "展示模式": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demo mode"
+          }
+        }
+      }
+    },
+    "展示模式沒有這個 session": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demo mode doesn't have this session"
+          }
+        }
+      }
+    },
+    "展開全文": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Full Text"
+          }
+        }
+      }
+    },
+    "工作中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Working"
+          }
+        }
+      }
+    },
+    "工作中 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Working %lld"
+          }
+        }
+      }
+    },
+    "工作中…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Working…"
+          }
+        }
+      }
+    },
+    "工具": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tool"
+          }
+        }
+      }
+    },
+    "已中斷": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interrupted"
+          }
+        }
+      }
+    },
+    "已勾": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checked"
+          }
+        }
+      }
+    },
+    "已取消": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canceled"
+          }
+        }
+      }
+    },
+    "已註冊": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registered"
+          }
+        }
+      }
+    },
+    "帳號": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account"
+          }
+        }
+      }
+    },
+    "幫我把這個專案部署上線": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Help me deploy this project"
+          }
+        }
+      }
+    },
+    "建置過了，產出在 `dist/`（1.2 MB）。部署之前先問一下你想放在哪裡。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The build passed; output is in `dist/` (1.2 MB). Before deploying, I'll ask where you'd like to put it."
+          }
+        }
+      }
+    },
+    "待命": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idle"
+          }
+        }
+      }
+    },
+    "從下面打字開始。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start typing below."
+          }
+        }
+      }
+    },
+    "從下面選一個，再按右上角「開始」": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick one below, then tap \"Start\" at the top right"
+          }
+        }
+      }
+    },
+    "思考中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thinking"
+          }
+        }
+      }
+    },
+    "或自己打一個答案…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Or type your own answer…"
+          }
+        }
+      }
+    },
+    "手機沒有網路": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your phone has no internet connection"
+          }
+        }
+      }
+    },
+    "找不到「%@」": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"%@\" not found"
+          }
+        }
+      }
+    },
+    "找不到這個 session（分頁關了？）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This session wasn't found (was the tab closed?)"
+          }
+        }
+      }
+    },
+    "找不到這個工具呼叫": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This tool call wasn't found"
+          }
+        }
+      }
+    },
+    "找到了：session 的有效時間寫成 30 秒（應該是 30 分鐘）。我改好了，跑一次測試確認。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Found it: the session timeout was set to 30 seconds (it should be 30 minutes). I fixed it and I'm running the tests to confirm."
+          }
+        }
+      }
+    },
+    "找專案或帳號": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search projects or accounts"
+          }
+        }
+      }
+    },
+    "找對話裡的字": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search in conversation"
+          }
+        }
+      }
+    },
+    "找資料夾": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search folders"
+          }
+        }
+      }
+    },
+    "把今天三場會議的紀錄整理成一份待辦清單": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn today's three meeting notes into a to-do list"
+          }
+        }
+      }
+    },
+    "指令": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command"
+          }
+        }
+      }
+    },
+    "推播": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Push Notifications"
+          }
+        }
+      }
+    },
+    "推薦": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recommended"
+          }
+        }
+      }
+    },
+    "搜尋對話": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search Conversations"
+          }
+        }
+      }
+    },
+    "收起": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collapse"
+          }
+        }
+      }
+    },
+    "改動": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes"
+          }
+        }
+      }
+    },
+    "整理好了，寫在 `todo.md`：\n\n- 週五前寄報價單給客戶\n- 下週一前改好首頁文案\n- 約設計師討論新圖示\n\n共 3 件，都標了負責人和期限。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Organized and saved in `todo.md`:\n\n- Send the quote to the client by Friday\n- Revise the homepage copy by next Monday\n- Meet the designer about the new icon\n\n3 items total, each with an owner and a deadline."
+          }
+        }
+      }
+    },
+    "星號": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starred"
+          }
+        }
+      }
+    },
+    "星號沒改到：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't change the star: %@"
+          }
+        }
+      }
+    },
+    "昨天 ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yesterday "
+          }
+        }
+      }
+    },
+    "更多操作": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More Actions"
+          }
+        }
+      }
+    },
+    "最近用過": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recently Used"
+          }
+        }
+      }
+    },
+    "未回報": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not Reported"
+          }
+        }
+      }
+    },
+    "未註冊": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not Registered"
+          }
+        }
+      }
+    },
+    "未連線": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not Connected"
+          }
+        }
+      }
+    },
+    "本週": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Week"
+          }
+        }
+      }
+    },
+    "核准，接著自動做": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve, then proceed automatically"
+          }
+        }
+      }
+    },
+    "核准，改檔不用問我": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve, don't ask me about edits"
+          }
+        }
+      }
+    },
+    "核准，每次改檔先問我": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve, ask me before each edit"
+          }
+        }
+      }
+    },
+    "標星號": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Star"
+          }
+        }
+      }
+    },
+    "檔案是空的或超過 15 MB": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The file is empty or over 15 MB"
+          }
+        }
+      }
+    },
+    "檢查設定": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check Settings"
+          }
+        }
+      }
+    },
+    "沒勾": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unchecked"
+          }
+        }
+      }
+    },
+    "沒有 session": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No sessions"
+          }
+        }
+      }
+    },
+    "沒有允許，Claude 停下來等你說要怎麼做": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not allowed. Claude stops and waits for you to say what to do"
+          }
+        }
+      }
+    },
+    "沒有要你處理的": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing needs your attention"
+          }
+        }
+      }
+    },
+    "沒有資料": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No data"
+          }
+        }
+      }
+    },
+    "沒有這個帳號：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No such account: "
+          }
+        }
+      }
+    },
+    "沒有這個選項": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No such option"
+          }
+        }
+      }
+    },
+    "狀態": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status"
+          }
+        }
+      }
+    },
+    "現在看的是 app 內建的假資料，沒有連到任何筆電。要連自己的筆電，在上面填好網址與通行碼按「儲存並連線」。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You're viewing the app's built-in sample data, not connected to any laptop. To connect your own laptop, enter the URL and passcode above and tap \"Save and Connect\"."
+          }
+        }
+      }
+    },
+    "畫面上已經沒有這個選單了": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This menu is no longer on screen"
+          }
+        }
+      }
+    },
+    "畫面上正開著選單，先按上面的選項": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A menu is open on screen. Tap an option above first"
+          }
+        }
+      }
+    },
+    "畫面上沒有可以送出的複選題": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There's no multi-select question on screen to submit"
+          }
+        }
+      }
+    },
+    "畫面已經換了，重新整理再選一次": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The screen has changed. Refresh and choose again"
+          }
+        }
+      }
+    },
+    "畫面已經變了，重新整理再按": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The screen has changed. Refresh and tap again"
+          }
+        }
+      }
+    },
+    "登入一直逾時，查一下原因": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Login keeps timing out. Look into why"
+          }
+        }
+      }
+    },
+    "看 %@ 的完整內容": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View full content of %@"
+          }
+        }
+      }
+    },
+    "確認筆電開著、session-remote 服務在跑、手機連著 Tailscale；網址照 tools/pair.py 印的填": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make sure your laptop is on, the session-remote service is running, and your phone is connected to Tailscale; fill in the URL as printed by tools/pair.py"
+          }
+        }
+      }
+    },
+    "確認答案 · 共 %lld 題": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirm Answers · %lld Questions"
+          }
+        }
+      }
+    },
+    "空白訊息": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empty message"
+          }
+        }
+      }
+    },
+    "第一句話（可不填）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "First message (optional)"
+          }
+        }
+      }
+    },
+    "第一次在這個資料夾開 Claude": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "First time opening Claude in this folder"
+          }
+        }
+      }
+    },
+    "筆電 .env 裡的": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From the laptop's .env"
+          }
+        }
+      }
+    },
+    "筆電上那個 iTerm2 分頁會關掉，對話紀錄還在，之後可以用 claude --resume 接回。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The iTerm2 tab on your laptop will be closed. The conversation history is still there. You can pick it back up later with claude --resume."
+          }
+        }
+      }
+    },
+    "筆電服務": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laptop Service"
+          }
+        }
+      }
+    },
+    "筆電的 iTerm2 裡還沒有跑 Claude Code。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Claude Code is running in your laptop's iTerm2 yet."
+          }
+        }
+      }
+    },
+    "等你": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting"
+          }
+        }
+      }
+    },
+    "等你 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting %lld"
+          }
+        }
+      }
+    },
+    "等你 %lld・工作中 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting %lld · Working %lld"
+          }
+        }
+      }
+    },
+    "等你回答": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for you"
+          }
+        }
+      }
+    },
+    "等筆電回應逾時": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timed out waiting for the laptop to respond"
+          }
+        }
+      }
+    },
+    "結束 Claude 並關掉分頁": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit Claude and close the tab"
+          }
+        }
+      }
+    },
+    "結束 Claude 並關掉筆電上的分頁？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit Claude and close the tab on your laptop?"
+          }
+        }
+      }
+    },
+    "網址": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL"
+          }
+        }
+      }
+    },
+    "網址看不懂，要像 http://100.x.x.x:5391": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't read this URL. It should look like http://100.x.x.x:5391"
+          }
+        }
+      }
+    },
+    "網路錯誤（%lld）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Network error (%lld)"
+          }
+        }
+      }
+    },
+    "背景": {
+      "comment": "鎖定畫面即時狀態的計數標籤，英文要短（四個並排）",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bkgd"
+          }
+        }
+      }
+    },
+    "背景 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Background %lld"
+          }
+        }
+      }
+    },
+    "背景跑": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Running in background"
+          }
+        }
+      }
+    },
+    "背景：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Background: "
+          }
+        }
+      }
+    },
+    "自己的 VPS": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My own VPS"
+          }
+        }
+      }
+    },
+    "要你允許": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs your permission"
+          }
+        }
+      }
+    },
+    "要信任「%@」這個資料夾嗎？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trust the folder \"%@\"?"
+          }
+        }
+      }
+    },
+    "要信任這個資料夾嗎？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trust this folder?"
+          }
+        }
+      }
+    },
+    "要改計畫（按了再打字）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change the plan (type after tapping)"
+          }
+        }
+      }
+    },
+    "要自己裝 Docker 與憑證": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have to set up Docker and certificates yourself"
+          }
+        }
+      }
+    },
+    "要送出這幾題的答案嗎？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Submit answers to these questions?"
+          }
+        }
+      }
+    },
+    "要部署到哪裡？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where should it be deployed?"
+          }
+        }
+      }
+    },
+    "計畫寫好了，等你核准": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The plan is ready, waiting for your approval"
+          }
+        }
+      }
+    },
+    "計畫寫好了，要照著做嗎？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The plan is ready. Proceed with it?"
+          }
+        }
+      }
+    },
+    "計畫核准": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan Approval"
+          }
+        }
+      }
+    },
+    "設定": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        }
+      }
+    },
+    "設定（已連線）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings (Connected)"
+          }
+        }
+      }
+    },
+    "設定（未連線）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings (Not Connected)"
+          }
+        }
+      }
+    },
+    "讀不到這張照片": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't read this photo"
+          }
+        }
+      }
+    },
+    "資料夾": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folder"
+          }
+        }
+      }
+    },
+    "載入更早的訊息": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Load Earlier Messages"
+          }
+        }
+      }
+    },
+    "輸入": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Input"
+          }
+        }
+      }
+    },
+    "輸出": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Output"
+          }
+        }
+      }
+    },
+    "退出展示模式": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exit Demo Mode"
+          }
+        }
+      }
+    },
+    "送出": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send"
+          }
+        }
+      }
+    },
+    "送出答案": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Submit Answers"
+          }
+        }
+      }
+    },
+    "送出選擇（已勾 %lld 項）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Submit choice (%lld checked)"
+          }
+        }
+      }
+    },
+    "送出（沒有勾任何一項）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Submit (nothing checked)"
+          }
+        }
+      }
+    },
+    "通行碼": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passcode"
+          }
+        }
+      }
+    },
+    "通行碼不對": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wrong passcode"
+          }
+        }
+      }
+    },
+    "連不上筆電": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't connect to laptop"
+          }
+        }
+      }
+    },
+    "連不上筆電，下面是上次的資料": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't connect to laptop. Showing the last data"
+          }
+        }
+      }
+    },
+    "連不上：%@。%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't connect: %@. %@"
+          }
+        }
+      }
+    },
+    "連不到筆電的服務": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't reach the laptop's service"
+          }
+        }
+      }
+    },
+    "連到筆電": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect to Laptop"
+          }
+        }
+      }
+    },
+    "連到筆電…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecting to laptop…"
+          }
+        }
+      }
+    },
+    "連線中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected"
+          }
+        }
+      }
+    },
+    "選一個": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick one"
+          }
+        }
+      }
+    },
+    "選了：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chose: %@"
+          }
+        }
+      }
+    },
+    "還沒在筆電上裝 session-remote？先用 app 內建的假資料看看怎麼用：列表、對話、回答題目都能按，不會連網。之後在設定頁可以退出。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haven't installed session-remote on your laptop yet? Try the app's built-in sample data first to see how it works: you can tap the list, the conversations, and answer questions, and nothing connects to the network. You can exit from the Settings page later."
+          }
+        }
+      }
+    },
+    "還沒有對話": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No conversation yet"
+          }
+        }
+      }
+    },
+    "還沒有輸出（可能還在跑）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No output yet (it may still be running)"
+          }
+        }
+      }
+    },
+    "部署": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deploy"
+          }
+        }
+      }
+    },
+    "部署中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deploying"
+          }
+        }
+      }
+    },
+    "都在跑，沒有在等你": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All running, none waiting for you"
+          }
+        }
+      }
+    },
+    "都完工了": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All done"
+          }
+        }
+      }
+    },
+    "錯誤": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Error"
+          }
+        }
+      }
+    },
+    "鎖定畫面即時狀態": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lock Screen Live Activity"
+          }
+        }
+      }
+    },
+    "開了之後，沒標星號的 session 完工不跳通知；等你回答的照樣會跳。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When on, unstarred sessions won't send a notification when Done; ones waiting for your answer still will."
+          }
+        }
+      }
+    },
+    "開始": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start"
+          }
+        }
+      }
+    },
+    "開新 session": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Session"
+          }
+        }
+      }
+    },
+    "關不掉：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't close: %@"
+          }
+        }
+      }
+    },
+    "關掉": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
+          }
+        }
+      }
+    },
+    "關掉「%@」？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close \"%@\"?"
+          }
+        }
+      }
+    },
+    "關掉這個 session": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close This Session"
+          }
+        }
+      }
+    },
+    "隱藏按鍵列": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide Key Bar"
+          }
+        }
+      }
+    },
+    "隱藏終端機畫面": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide Terminal View"
+          }
+        }
+      }
+    },
+    "顯示按鍵列": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Key Bar"
+          }
+        }
+      }
+    },
+    "顯示終端機畫面": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Terminal View"
+          }
+        }
+      }
+    },
+    "（共 %lld 件）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(%lld total)"
+          }
+        }
+      }
+    },
+    "（圖片：%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Image: %@)"
+          }
+        }
+      }
+    },
+    "（展示模式沒有真的終端機畫面）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Demo mode has no real terminal view)"
+          }
+        }
+      }
+    },
+    "（展示模式的假輸出）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Demo mode sample output)"
+          }
+        }
+      }
+    },
+    "（展示模式）收到：「%@」。連上自己的筆電之後，這裡會是 Claude 真正的回覆。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Demo mode) Got: \"%@\". Once you connect your own laptop, Claude's real reply will appear here."
+          }
+        }
+      }
+    },
+    "（展示模式）新 session 開好了。連上自己的筆電之後，這裡會在筆電的 iTerm2 開一個真的 Claude Code。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Demo mode) New session is ready. Once you connect your own laptop, this will open a real Claude Code in your laptop's iTerm2."
+          }
+        }
+      }
+    },
+    "（展示模式）測試全過（42 passed）。登入逾時修好了：有效時間改回 30 分鐘。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Demo mode) All tests passed (42 passed). Login timeout fixed: the timeout is back to 30 minutes."
+          }
+        }
+      }
+    },
+    "（展示模式）照你選的「%@」部署好了，網址是 https://shop.example.com。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(Demo mode) Deployed using your choice, \"%@\". The URL is https://shop.example.com."
+          }
+        }
+      }
+    },
+    "（沒有輸出）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(No output)"
+          }
+        }
+      }
+    },
+    "（沒答）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(No answer)"
+          }
+        }
+      }
+    },
+    "，": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ", "
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

@@ -54,7 +54,7 @@ struct MessageView: View {
                 .padding(.bottom, time == nil ? 0 : 14)
             }
         case "system":
-            Text(m.text)
+            Text(serverText(m.text))
                 .font(.caption).foregroundStyle(.secondary)
                 .padding(.horizontal, 10).padding(.vertical, 3)
                 .background(Color(.tertiarySystemFill), in: Capsule())
@@ -110,11 +110,11 @@ struct ToolGroupView: View {
     private var summary: String {
         var order: [String] = []
         var count: [String: Int] = [:]
-        for t in tools.map({ $0.tool ?? "工具" }) {
+        for t in tools.map({ $0.tool ?? String(localized: "工具") }) {
             if count[t] == nil { order.append(t) }
             count[t, default: 0] += 1
         }
-        return order.map { count[$0]! > 1 ? "\($0) ×\(count[$0]!)" : $0 }.joined(separator: "、")
+        return order.map { count[$0]! > 1 ? "\($0) ×\(count[$0]!)" : $0 }.joined(separator: String(localized: "、"))
     }
 
     private func row(_ m: Message) -> some View {

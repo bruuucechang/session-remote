@@ -111,6 +111,13 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
   `SR_FIRSTRUN=1` 當成沒設定過、走第一次配對（存的東西不寫進手機）。
 - **app 要宣告繁中（`CFBundleDevelopmentRegion: zh-Hant`）**：手機語言是英文時，沒宣告的話系統元件（確認框的取消、搜尋沒結果、網路錯誤訊息）都講英文。
   網路錯誤另外在 `API.describe` 翻成中文（2026-10-25 真機實測）。
+- **英文介面（B8）**：String Catalog 是 `ios/Resources/Localizable.xcstrings`，**key 就是繁中原文**（開發語言 zh-Hant），手機語言英文才換英文。
+  SwiftUI 的字面字串（`Text("…")`、`Button("…")`）自動會翻；**存進 `String` 再顯示的要寫 `String(localized: "…")`**，不然永遠是中文。
+  執行時才知道的字用 `L()`；後端回的中文訊息（錯誤 detail、「已中斷」、計畫核准）由 app 用 `serverText()` 翻（`ios/Shared/L10n.swift`），後端不分語言。
+  新增或改中文字串後：帶 `SWIFT_EMIT_LOC_STRINGS=YES` build → `tools/l10n-check.py --sync` 補 key → 填英文 → `tools/l10n-check.py` 要 ✓（刻意不翻的行尾寫 `// l10n:skip`）。
+  分區標題這類拿來判斷的字要用英文 key 判斷（`SessionListView` 用 `sec.key`），不能比對翻過的字。日期格式用 `appLocale`，不寫死 zh_Hant_TW。
+  英文截圖：`SR_LANG=en tools/sim-shot.sh out.png`（只換 app 語言）。**模擬器系統語言是英文**，所以 UI 測試的 `launchApp` 預設帶
+  `-AppleLanguages (zh-Hant)`（不帶的話 35 個用中文 label 找元素的測試全紅，2026-11-16 實測）；英文介面的測試是 `DemoTests.testEnglishDemo`。
 - **XCUITest 點靠右對齊的輸入框要點最右邊**：點正中間游標落在最前面，刪除字元刪不到東西（SecureField 看起來像沒反應）。
   整列的字合在 NavigationLink 按鈕的 label 裡、分隔符號跟著語言（繁中是「、」），用 `label BEGINSWITH` 找。
 - **XCUITest 找文字要限定在哪一塊**：對話搜尋的結果字在後面的對話裡也有，`app.any(...)` 會找到底下那則訊息、搜尋壞了也過；用 `app.cells.containing(...)`（2026-10-25）。
