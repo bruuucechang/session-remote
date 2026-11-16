@@ -18,7 +18,17 @@ import Foundation
     let msgs = try! d.session("demo-blog").messages.map(\.text)
     let ok = msgs.last?.contains("second") == true
     print(ok ? "PASS" : "FAIL", msgs.suffix(2))
-    return ok
+    // 後端訊息翻譯（PR #31 Codex 審查）：routers 把 iTerm2 錯誤包成「iTerm2：<內層>」，內層也要翻
+    let en = ["iTerm2 沒回應（可能卡在對話框）": "iTerm2 isn't responding", "不收這種檔案：": "Unsupported file type: ", "已中斷": "Interrupted"]
+    let look: (String) -> String = { en[$0] ?? $0 }
+    let cases = [("iTerm2：iTerm2 沒回應（可能卡在對話框）", "iTerm2: iTerm2 isn't responding"),
+                 ("不收這種檔案：.exe", "Unsupported file type: .exe"), ("已中斷", "Interrupted"), ("沒見過的：字", "沒見過的：字")]
+    var ok2 = true
+    for (input, want) in cases where serverText(input, lookup: look) != want {
+        print("FAIL serverText", input, "→", serverText(input, lookup: look), "want", want); ok2 = false
+    }
+    if ok2 { print("PASS serverText") }
+    return ok && ok2
 }
 Task { @MainActor in exit(await run() ? 0 : 1) }
 RunLoop.main.run()
