@@ -3,7 +3,7 @@
 > 一個 session 做一塊。做完跑驗收 → 打勾 → 寫 HANDOFF → 關掉開新的。
 > 規格：`docs/public-release-spec.md`（範圍、明確不做都以它為準）。上一批 B1～B5 在 `blocks-done.md`。
 
-## B6 後端去個人化＋一個指令裝好 Mac 端  [未開始]
+## B6 後端去個人化＋一個指令裝好 Mac 端  [完成]
 - 目標：別人的 Mac 沒有 skills repo、agent-quota、APNs 金鑰也能跑；`tools/install.sh` 一次裝好
 - 驗收：`cd backend && .venv/bin/pytest` 綠；帳號清單、金鑰、額度、context 都指到不存在的路徑時服務起得來、`curl /api/sessions` 回 200；
   乾淨暫存 `HOME` 跑 `tools/install.sh --dry-run` 與實跑兩次：`settings.json` 有備份、hook 只出現一次

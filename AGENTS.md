@@ -27,6 +27,7 @@ session 變成「等你回答」或「做完」時推播。規格與「明確不
 
 ```bash
 tools/install-agent.sh            # 常駐服務（launchd：com.bruce.session-remote，log 在 /tmp/session-remote.log）
+tools/install.sh [--dry-run]      # 公開版給別人的安裝：venv＋hook 進 ~/.claude/settings.json＋launchd com.sessionremote.server＋配對 QR（作者這台不要跑，埠會撞）
 cd backend && .venv/bin/pytest    # 後端單元測試
 tools/install-ios.sh [--wait]     # 編譯並裝到 iPhone（--wait：等手機回到網路再裝）
 tools/sim-shot.sh out.png [分頁id] # 無頭模擬器跑 app 並截圖（不開 Simulator 視窗）

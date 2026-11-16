@@ -107,6 +107,28 @@ flowchart TD
 | `tools` | 安裝、配對、測試與其他工具 |
 <!-- /readme:arch -->
 
+## 自己裝來用（不用 Apple 開發者帳號）
+
+需要：一台 Mac，裝好 [iTerm2](https://iterm2.com)、[Tailscale](https://tailscale.com)、node、Python 3.10 以上，
+在 iTerm2 裡跑 Claude Code；iPhone 也裝 Tailscale、登入同一個帳號。
+
+1. iPhone 從 TestFlight 公開連結裝 Sessions（連結上線後補在這裡）。
+2. Mac 上：
+
+   ```bash
+   git clone https://github.com/bruuucechang/session-remote.git
+   cd session-remote
+   tools/install.sh --dry-run   # 先看會做什麼
+   tools/install.sh             # 實際安裝，最後印出配對 QR code
+   ```
+
+   它會建 Python 環境、產通行碼寫進 `.env`、把 hook 加進 `~/.claude/settings.json`（先備份）、
+   裝成開機自動啟動的服務（log 在 `~/Library/Logs/session-remote.log`）。重跑安全。
+3. 用 iPhone 相機掃 QR code。已經開著的 Claude Code 要重開才會被看到；第一次從手機操作時 Mac 會問要不要讓它控制 iTerm，按允許。
+
+限制：沒有推播（等你回答、做完的通知、鎖定畫面與動態島要作者的推播金鑰）；只認 iTerm2 裡的 Claude Code；
+預設只認 `~/.claude` 一個設定目錄；Mac 要保持喚醒。
+
 ## 怎麼跑
 <!-- readme:run 2026-11-13 -->
 第一次使用時，先允許 macOS 控制 iTerm2，並將 iPhone 解鎖、接上同一個 Wi-Fi 或用線連接 Mac。
