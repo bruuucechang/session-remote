@@ -47,6 +47,18 @@ struct SettingsView: View {
                     .foregroundStyle(.red)
                 }
             }
+            if store.isDemo && !firstRun {
+                Section {
+                    Button("退出展示模式", role: .destructive) {
+                        store.exitDemo()
+                        dismiss()
+                    }
+                } header: {
+                    Text("展示模式")
+                } footer: {
+                    Text("現在看的是 app 內建的假資料，沒有連到任何筆電。要連自己的筆電，在上面填好網址與通行碼按「儲存並連線」。")
+                }
+            }
             Section {
                 Button {
                     connect()
@@ -59,6 +71,13 @@ struct SettingsView: View {
                 }
                 // 沒改又連得上就不用按；連不上時同一組設定也能再試
                 .disabled(busy || url.isEmpty || token.isEmpty || (!firstRun && !changed && store.error == nil))
+            }
+            if firstRun {
+                Section {
+                    Button("先看看（展示模式）") { store.enterDemo() }
+                } footer: {
+                    Text("還沒在筆電上裝 session-remote？先用 app 內建的假資料看看怎麼用：列表、對話、回答題目都能按，不會連網。之後在設定頁可以退出。")
+                }
             }
             if let on = starOnly {
                 Section {
@@ -76,7 +95,7 @@ struct SettingsView: View {
             }
             if !firstRun {
                 Section("狀態") {
-                    LabeledContent("即時更新", value: store.connected ? "連線中" : "未連線")
+                    LabeledContent("即時更新", value: store.isDemo ? "展示模式" : store.connected ? "連線中" : "未連線")
                     LabeledContent("推播", value: store.pushToken == nil ? "未註冊" : "已註冊")
                 }
             }

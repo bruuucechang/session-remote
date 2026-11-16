@@ -30,6 +30,13 @@ final class Store: ObservableObject {
     /// 不然真機跑完測試，手機上的小工具會指到假資料後端
     private var overridden = false
 
+    /// 展示模式（配對頁的「先看看」）：資料全部來自 app 內建的假資料、不連網，也不存進手機。
+    /// 不記住：重開 app 回到配對頁
+    @Published private(set) var demo: DemoBackend?
+    var isDemo: Bool { demo != nil }
+    /// 測試模式或展示模式：不准動手機上的東西（App Group、紅點、即時狀態、推播註冊、草稿）
+    private var sandboxed: Bool { overridden || demo != nil }
+
     init() {
         #if DEBUG
         // 模擬器驗收用：SIMCTL_CHILD_SR_URL／SR_TOKEN／SR_OPEN 從 simctl launch 帶進來，
@@ -43,6 +50,8 @@ final class Store: ObservableObject {
         if let o = env["SR_OPEN"], !o.isEmpty { openSession = o }
         // UI 測試第一次配對：當成還沒設定過，但存的東西不寫進手機
         if env["SR_FIRSTRUN"] == "1" { token = ""; overridden = true }
+        // 模擬器驗收展示模式：SR_DEMO=1 一打開就進展示模式
+        if env["SR_DEMO"] == "1" { demo = DemoBackend() }
         #endif
     }
 
@@ -50,19 +59,44 @@ final class Store: ObservableObject {
 
     func setDraft(_ id: String, _ text: String) {
         // 測試模式的草稿不寫進手機的設定（假資料的 session id 留在那裡只是垃圾）
-        if overridden { return }
+        if sandboxed { return }
         if text.isEmpty { drafts[id] = nil } else { drafts[id] = text }
         UserDefaults.standard.set(drafts, forKey: "drafts")
     }
 
-    var isConfigured: Bool { !token.isEmpty && URL(string: serverURL) != nil }
+    var isConfigured: Bool { demo != nil || (!token.isEmpty && URL(string: serverURL) != nil) }
 
     var api: API? {
+        if let demo { return API.demo(demo) }
         guard let url = URL(string: serverURL), !token.isEmpty else { return nil }
         return API(base: url, token: token)
     }
 
+    func enterDemo() {
+        stop()
+        sessions = []
+        quota = []
+        quotaFetched = .distantPast
+        loaded = false
+        demo = DemoBackend()
+        restart()
+    }
+
+    /// 退出展示模式：回到配對頁（或原本配對好的筆電）
+    func exitDemo() {
+        stop()
+        demo = nil
+        sessions = []
+        quota = []
+        quotaFetched = .distantPast
+        loaded = false
+        openSession = nil
+        if isConfigured { restart() }
+    }
+
     func save(serverURL: String, token: String) {
+        // 在展示模式裡配對：直接換成真的筆電
+        demo = nil
         self.serverURL = serverURL.trimmingCharacters(in: .whitespaces)
         self.token = token.trimmingCharacters(in: .whitespaces)
         if !overridden {
@@ -104,8 +138,12 @@ final class Store: ObservableObject {
 
     func refresh() async {
         guard let api else { return }
+        let source = demo
         do {
-            sessions = try await api.sessions().sessions
+            let list = try await api.sessions().sessions
+            // 抓的途中進出展示模式：這份是另一邊的資料，丟掉
+            guard source === demo else { return }
+            sessions = list
             #if DEBUG
             // 模擬器驗收：SR_HIDE=waiting,done 把這幾種藏起來，讓畫面下面的區塊（收起來的待命）擠得進一張截圖
             if let hide = ProcessInfo.processInfo.environment["SR_HIDE"]?.split(separator: ",").map(String.init) {
@@ -117,9 +155,11 @@ final class Store: ObservableObject {
             // app 圖示的紅點＝等你回答的數量（app 不在前景時由筆電推播的 badge 更新）
             let waiting = sessions.filter { $0.status == "waiting" }.count
             // 測試模式不動：假資料的數字會留在真機的 app 圖示上
-            if !overridden { try? await UNUserNotificationCenter.current().setBadgeCount(waiting) }
-            LiveActivityController.shared.sync(sessions, api: api)
-            WidgetCenter.shared.reloadAllTimelines()
+            if !sandboxed { try? await UNUserNotificationCenter.current().setBadgeCount(waiting) }
+            if demo == nil {
+                LiveActivityController.shared.sync(sessions, api: api)
+                WidgetCenter.shared.reloadAllTimelines()
+            }
             if Date().timeIntervalSince(quotaFetched) > 60 {
                 quotaFetched = Date()
                 quota = (try? await api.quota().accounts) ?? quota
@@ -134,8 +174,8 @@ final class Store: ObservableObject {
 
     func start() {
         // 舊版只存在 app 自己的設定裡：補一份到 App Group 給小工具用
-        if isConfigured && !overridden { SharedConfig.save(url: serverURL, token: token) }
-        if let api, !overridden { LiveActivityController.shared.attach(api: api) }
+        if isConfigured && !sandboxed { SharedConfig.save(url: serverURL, token: token) }
+        if let api, !sandboxed { LiveActivityController.shared.attach(api: api) }
         guard eventsTask == nil else { return }
         eventsTask = Task { [weak self] in
             var delay: UInt64 = 1
@@ -156,7 +196,7 @@ final class Store: ObservableObject {
                 delay = min(delay * 2, 15)
             }
         }
-        if let pushToken { Task { try? await api?.registerDevice(token: pushToken) } }
+        if let pushToken, demo == nil { Task { try? await api?.registerDevice(token: pushToken) } }
     }
 
     func stop() {

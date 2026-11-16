@@ -10,7 +10,7 @@
 - 碰：`backend/app/config.py`、帳號讀取的 repository、`tools/install.sh`（新）、`launchd/` 樣板、`.env.example`、README 安裝段
 - 不做：改使用者自己這台的 `tools/install-agent.sh` 流程；Windows／Linux
 
-## B7 展示模式  [未開始]
+## B7 展示模式  [完成]
 - 目標：配對畫面多一個「先看看」，用 app 內建假資料跑清單 → 對話 → 回答選項題／權限提示，不連網；設定頁能退出展示模式
 - 驗收：`tools/sim-shot.sh` 截圖看得到展示模式的清單、對話、題目卡；`tools/uitest.sh --sim` 照舊全綠
 - 碰：`ios/Sources/API.swift`（換成可替換的資料來源）、`Store.swift`、配對／設定畫面、新的假資料檔

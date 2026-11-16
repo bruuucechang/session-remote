@@ -61,6 +61,7 @@ targets:
       - Widgets
       - Shared
       - Sources/API.swift
+      - Sources/DemoBackend.swift
     entitlements:
       path: SessionWidgets.entitlements
       properties:
