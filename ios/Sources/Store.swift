@@ -72,12 +72,17 @@ final class Store: ObservableObject {
         return API(base: url, token: token)
     }
 
-    func enterDemo() {
-        stop()
+    /// 換資料來源（進出展示模式）時把上一邊的列表與額度清掉，不然假資料會混進真的畫面（快取 60 秒的額度尤其會）
+    private func clearData() {
         sessions = []
         quota = []
         quotaFetched = .distantPast
         loaded = false
+    }
+
+    func enterDemo() {
+        stop()
+        clearData()
         demo = DemoBackend()
         restart()
     }
@@ -86,17 +91,19 @@ final class Store: ObservableObject {
     func exitDemo() {
         stop()
         demo = nil
-        sessions = []
-        quota = []
-        quotaFetched = .distantPast
-        loaded = false
+        clearData()
         openSession = nil
         if isConfigured { restart() }
     }
 
     func save(serverURL: String, token: String) {
         // 在展示模式裡配對：直接換成真的筆電
-        demo = nil
+        if demo != nil {
+            stop()
+            demo = nil
+            clearData()
+            openSession = nil
+        }
         self.serverURL = serverURL.trimmingCharacters(in: .whitespaces)
         self.token = token.trimmingCharacters(in: .whitespaces)
         if !overridden {

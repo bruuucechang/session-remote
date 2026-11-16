@@ -45,6 +45,23 @@ final class DemoTests: XCTestCase {
         XCTAssertTrue(app.buttons["先看看（展示模式）"].waitForExistence(timeout: 10), "退出後沒回到配對頁")
     }
 
+    /// 展示模式裡直接配對：假資料（尤其快取 60 秒的額度卡）不能留在真的列表上（PR #30 Codex 第三輪）
+    func testPairFromDemoDropsFakeData() throws {
+        let app = try enterDemo()
+        XCTAssertTrue(app.any("personal").waitForExistence(timeout: 10), "展示模式沒有假額度，測不出來")
+        let gear = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "設定")).firstMatch
+        gear.tap()
+        let field = app.secureTextFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.5)).tap()
+        field.typeText(FakeBackend.token)
+        app.buttons["儲存並連線"].tap()
+        XCTAssertTrue(app.staticTexts["hello"].waitForExistence(timeout: 15), "配對後沒進真的列表")
+        XCTAssertFalse(app.any("展示模式").exists, "配對後還在展示模式")
+        XCTAssertFalse(app.any("personal").exists, "展示模式的假額度留在真的列表上")
+        shot(app, "demo-paired")
+    }
+
     func testPermissionPrompt() throws {
         let app = try enterDemo()
         app.row("api").tap()
