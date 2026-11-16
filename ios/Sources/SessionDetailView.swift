@@ -337,7 +337,7 @@ struct SessionDetailView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             ForEach(review, id: \.self) { r in
                                 Text(r.question).font(.caption).foregroundStyle(.secondary)
-                                Text("→ \(r.answer.isEmpty ? "（沒答）" : r.answer)").font(.callout)
+                                Text("→ \(r.answer.isEmpty ? String(localized: "（沒答）") : r.answer)").font(.callout)
                             }
                         }
                     }

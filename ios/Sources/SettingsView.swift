@@ -97,8 +97,10 @@ struct SettingsView: View {
             }
             if !firstRun {
                 Section("狀態") {
-                    LabeledContent("即時更新", value: store.isDemo ? "展示模式" : store.connected ? "連線中" : "未連線")
-                    LabeledContent("推播", value: store.pushToken == nil ? "未註冊" : "已註冊")
+                    // LabeledContent(value:) 收 String、不會自己翻
+                    LabeledContent("即時更新", value: store.isDemo ? String(localized: "展示模式")
+                                   : store.connected ? String(localized: "連線中") : String(localized: "未連線"))
+                    LabeledContent("推播", value: store.pushToken == nil ? String(localized: "未註冊") : String(localized: "已註冊"))
                 }
             }
         }

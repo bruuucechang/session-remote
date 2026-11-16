@@ -922,6 +922,16 @@
         }
       }
     },
+    "已註冊": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registered"
+          }
+        }
+      }
+    },
     "帳號": {
       "localizations": {
         "en": {
@@ -1218,6 +1228,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Not Reported"
+          }
+        }
+      }
+    },
+    "未註冊": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not Registered"
+          }
+        }
+      }
+    },
+    "未連線": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not Connected"
           }
         }
       }
@@ -1622,6 +1652,16 @@
         }
       }
     },
+    "網址看不懂，要像 http://100.x.x.x:5391": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't read this URL. It should look like http://100.x.x.x:5391"
+          }
+        }
+      }
+    },
     "網路錯誤（%lld）": {
       "localizations": {
         "en": {
@@ -1993,6 +2033,16 @@
         }
       }
     },
+    "連線中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected"
+          }
+        }
+      }
+    },
     "選一個": {
       "localizations": {
         "en": {
@@ -2299,6 +2349,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "(No output)"
+          }
+        }
+      }
+    },
+    "（沒答）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(No answer)"
           }
         }
       }

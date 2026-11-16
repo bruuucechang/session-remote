@@ -36,6 +36,16 @@ final class DemoTests: XCTestCase {
         fly.tap()
         XCTAssertTrue(app.any("Chose: Fly.io").waitForExistence(timeout: 10), "按了選項對話沒變（或不是英文）")
         shot(app, "en-answered")
+
+        // 設定頁的狀態值是 String 傳進 LabeledContent(value:)，不會自己翻（PR #31 Codex 審查抓到）
+        app.navigationBars.buttons.firstMatch.tap()
+        let gear = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Settings")).firstMatch
+        XCTAssertTrue(gear.waitForExistence(timeout: 5), "英文列表沒有 Settings 鈕")
+        gear.tap()
+        XCTAssertTrue(app.any("Live Updates").waitForExistence(timeout: 5), "設定頁欄位不是英文")
+        XCTAssertFalse(app.any("註冊").exists, "設定頁的推播狀態還是中文")
+        XCTAssertFalse(app.any("連線").exists, "設定頁的連線狀態還是中文")
+        shot(app, "en-settings")
     }
 
     func testAnswerQuestionAndExit() throws {

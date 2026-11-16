@@ -117,7 +117,7 @@ final class Store: ObservableObject {
     /// 先用這組網址與通行碼抓一次列表，連得上才存；回傳錯誤訊息（nil＝成功）
     func connect(serverURL: String, token: String) async -> String? {
         let u = serverURL.trimmingCharacters(in: .whitespaces), t = token.trimmingCharacters(in: .whitespaces)
-        guard let url = URL(string: u), url.scheme != nil else { return "網址看不懂，要像 http://100.x.x.x:5391" }
+        guard let url = URL(string: u), url.scheme != nil else { return String(localized: "網址看不懂，要像 http://100.x.x.x:5391") }
         do {
             _ = try await API(base: url, token: t).sessions()
         } catch {

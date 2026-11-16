@@ -10,17 +10,28 @@ import json, re, sys, pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 IOS = ROOT / "ios"
 CAT = IOS / "Resources" / "Localizable.xcstrings"
-CJK = re.compile(r'"[^"\n]*[一-鿿（-？、-』][^"\n]*"')
+HAN = re.compile(r'[一-鿿（-？、-』]')
+# 字串字面值，插值 \( … \) 裡可以再有一層字串（"關掉「\(x ?? "")」？"）
+LIT = re.compile(r'"(?:[^"\\\n]|\\[^(]|\\\((?:[^"()]|\([^"()]*\)|"[^"\n]*")*\))*"')
+INNER = re.compile(r'"[^"\\\n]*"')
+
+def literals(code):
+    """回傳 (起點, 字面值)：外層的字串，加上插值裡那一層的字串（它們各自要翻）"""
+    for m in LIT.finditer(code):
+        yield m.start(), m.group(0)
+        for seg in re.finditer(r'\\\(', m.group(0)):
+            for n in INNER.finditer(m.group(0), seg.end()):
+                yield m.start() + n.start(), n.group(0)
 
 def extracted():
-    keys, lines = set(), set()
+    keys, cols = set(), set()
     for f in (IOS / "build" / "dd").rglob("*.stringsdata"):
         d = json.loads(f.read_text())
-        src = d.get("source", "")
+        src = d.get("source", "").split("/ios/", 1)[-1]   # 只比 ios/ 底下的相對路徑：worktree 裡跑也對得上
         for e in d.get("tables", {}).get("Localizable", []):
             keys.add(e["key"])
-            lines.add((src, e["location"]["startingLine"]))
-    return keys, lines
+            cols.add((src, e["location"]["startingLine"], e["location"]["startingColumn"]))
+    return keys, cols
 
 def server_keys():
     """後端回給手機顯示的中文：app 用 serverText() 查目錄。f-string 只取到「：」為止的前綴。"""
@@ -37,7 +48,7 @@ def server_keys():
     return keys
 
 def main():
-    keys, lines = extracted()
+    keys, cols = extracted()
     if not keys:
         sys.exit("✗ 找不到 .stringsdata：先帶 SWIFT_EMIT_LOC_STRINGS=YES build")
     cat = json.loads(CAT.read_text()) if CAT.exists() else {"sourceLanguage": "zh-Hant", "strings": {}, "version": "1.0"}
@@ -52,9 +63,14 @@ def main():
     for sub in ("Sources", "Shared", "Widgets"):
         for p in sorted((IOS / sub).rglob("*.swift")):
             for i, line in enumerate(p.read_text().splitlines(), 1):
-                code = line.split("//")[0] if "l10n:skip" not in line else ""
-                if CJK.search(code) and (str(p), i) not in lines:
-                    print(f"不會翻  {p.relative_to(ROOT)}:{i}  {line.strip()[:100]}"); bad += 1
+                code = re.sub(r'(?<![:"])//.*$', "", line) if "l10n:skip" not in line else ""   # http:// 不是註解
+                # 逐個字串對欄位：同一行別的字串被抽到不算數（2026-11-16 漏過 LabeledContent(value:) 的字）
+                for start, lit in literals(code):
+                    if not HAN.search(lit):
+                        continue
+                    b = len(code[:start].encode())   # 編譯器的欄位是 UTF-8 位元組、從 1 算
+                    if not any((str(p.relative_to(IOS)), i, c) in cols for c in (b, b + 1, b + 2)):
+                        print(f"不會翻  {p.relative_to(ROOT)}:{i}  {lit[:60]}"); bad += 1
     for k in sorted(keys):
         if not re.search(r"[一-鿿]", k):
             continue
