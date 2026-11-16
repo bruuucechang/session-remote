@@ -51,12 +51,14 @@ fi
 
 # --- venv ---
 VENV="$DIR/backend/.venv"
-if [ ! -x "$VENV/bin/uvicorn" ]; then
+if [ ! -x "$VENV/bin/python" ]; then
   say "▶ 建立 Python 環境…"
   run "$PY" -m venv "$VENV"
-  run "$VENV/bin/pip" install -q --upgrade pip
-  run "$VENV/bin/pip" install -q -r "$DIR/backend/requirements.txt"
 fi
+# 每次都同步相依：更新 repo 後重跑、或上次裝到一半失敗，重跑就補齊
+say "▶ 同步 Python 相依…"
+run "$VENV/bin/pip" install -q --upgrade pip
+run "$VENV/bin/pip" install -q -r "$DIR/backend/requirements.txt"
 
 # --- hook ---
 PORT="$( (grep -E '^API_PORT=' "$DIR/.env" 2>/dev/null || grep -E '^API_PORT=' "$DIR/.env.example") | cut -d= -f2)"; PORT="${PORT:-5391}"

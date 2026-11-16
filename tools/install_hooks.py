@@ -12,6 +12,7 @@ import argparse
 import json
 import os
 import re
+import shlex
 import shutil
 import sys
 import time
@@ -26,9 +27,9 @@ def default_settings() -> Path:
     return Path(base).expanduser() / "settings.json"
 
 
-# 這支工具自己寫的格式：node "<…/hooks/report.mjs>" <事件>[ <埠>]。只有這種會被改寫（換埠、搬 repo 後重裝）；
+# 這支工具自己寫的格式：node <加了引號的 …/hooks/report.mjs> <事件>[ <埠>]。只有這種會被改寫（換埠、搬 repo 後重裝）；
 # 別的寫法（例如作者自己包一層 ext.mjs）當成使用者自己管的，看到就不加也不動。
-MANAGED = re.compile(r'^node "[^"]*/hooks/report\.mjs" \w+( \d+)?$')
+MANAGED = re.compile(r"""^node ("[^"]*|'[^']*|[^\s'"]*)/hooks/report\.mjs["']? \w+( \d+)?$""")
 
 
 def merge(settings: dict, report: Path, port: str = "5391") -> list[str]:
@@ -37,7 +38,7 @@ def merge(settings: dict, report: Path, port: str = "5391") -> list[str]:
     suffix = "" if port in ("", "5391") else f" {port}"
     changed = []
     for ev in EVENTS:
-        want = f'node "{report}" {ev}{suffix}'
+        want = f"node {shlex.quote(str(report))} {ev}{suffix}"  # 路徑可能含 $、反引號：用單引號規則
         groups = hooks.setdefault(ev, [])
         mine = [h for g in groups for h in g.get("hooks", []) if "report.mjs" in h.get("command", "")]
         if not mine:

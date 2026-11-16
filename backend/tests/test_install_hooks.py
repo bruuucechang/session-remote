@@ -82,3 +82,18 @@ def test_same_second_rerun_keeps_original_backup(tmp_path):
     baks = sorted(tmp_path.glob("settings.json.bak-*"))
     assert len(baks) == 2
     assert any(json.loads(b.read_text()) == {"model": "original"} for b in baks)
+
+
+def test_path_with_shell_chars_survives_shell(tmp_path):
+    import importlib.util, shlex as _sh
+    spec = importlib.util.spec_from_file_location("ih", SCRIPT)
+    ih = importlib.util.module_from_spec(spec); spec.loader.exec_module(ih)
+    report = Path('/tmp/$budget `x` "q"/hooks/report.mjs')
+    st = {}
+    ih.merge(st, report)
+    cmd = st["hooks"]["Stop"][0]["hooks"][0]["command"]
+    assert _sh.split(cmd)[1] == str(report)  # shell 拆出來的路徑跟原本一字不差
+    assert ih.MANAGED.match(cmd)
+    ih.merge(st, report, "5400")  # 換埠仍認得是自己管的
+    assert st["hooks"]["Stop"][0]["hooks"][0]["command"].endswith("Stop 5400")
+    assert len(st["hooks"]["Stop"]) == 1
