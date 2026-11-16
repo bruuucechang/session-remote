@@ -35,6 +35,18 @@ struct SessionListView: View {
     var body: some View {
         NavigationStack(path: $path) {
             List {
+                if store.isDemo {
+                    Section {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Label("展示模式", systemImage: "sparkles.tv")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.tint)
+                            Text("下面是 app 內建的假資料，按什麼都不會連網。點「等你回答」的 session 試著回答看看。")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
+                        Button("退出展示模式") { store.exitDemo() }
+                    }
+                }
                 // 連不上但手上還有上次的列表：留著列表，上面講清楚這是舊的
                 if let err = store.error, !store.sessions.isEmpty {
                     Section {

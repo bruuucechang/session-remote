@@ -195,6 +195,12 @@ struct APIError: LocalizedError {
 struct API {
     let base: URL
     let token: String
+    /// 展示模式：有值就全部改問這份 app 內建的假資料，不打網路（見 DemoBackend.swift）
+    var demo: DemoBackend? = nil
+
+    static func demo(_ d: DemoBackend) -> API {
+        API(base: URL(string: "demo://local")!, token: "demo", demo: d)
+    }
 
     private func request(_ path: String, method: String = "GET", body: [String: Any]? = nil) -> URLRequest {
         var req = URLRequest(url: base.appendingPathComponent(path))
@@ -238,12 +244,14 @@ struct API {
     private struct Created: Decodable { let ok: Bool; let id: String }
 
     func sessions() async throws -> SessionList {
-        try await send(request("api/sessions"), as: SessionList.self)
+        if let demo { return await demo.sessions() }
+        return try await send(request("api/sessions"), as: SessionList.self)
     }
 
     /// after：只要這一則之後的（省流量）；before：這一則之前的一頁（載入更早的）
     func session(_ id: String, after: String? = nil, before: String? = nil, limit: Int = 150,
                  screen: Bool = false) async throws -> SessionDetail {
+        if let demo { return try await demo.session(id) }
         var comps = URLComponents(url: base.appendingPathComponent("api/sessions/\(id)"), resolvingAgainstBaseURL: false)!
         comps.queryItems = [URLQueryItem(name: "limit", value: String(limit)),
                             URLQueryItem(name: "screen", value: screen ? "true" : "false")]
@@ -255,27 +263,32 @@ struct API {
     }
 
     func reply(_ id: String, text: String) async throws {
+        if let demo { return try await demo.reply(id, text: text) }
         _ = try await send(request("api/sessions/\(id)/reply", method: "POST", body: ["text": text]), as: OK.self)
     }
 
     /// label：按下去那顆按鈕的字。筆電會核對畫面上同一個 key 還是不是它，不是就拒絕（手機顯示的是舊畫面）
     func key(_ id: String, _ key: String, label: String? = nil) async throws {
+        if let demo { return try await demo.key(id, key, label: label) }
         var body = ["key": key]
         if let label { body["label"] = label }
         _ = try await send(request("api/sessions/\(id)/key", method: "POST", body: body), as: OK.self)
     }
 
     func interrupt(_ id: String) async throws {
+        if let demo { return try await demo.interrupt(id) }
         _ = try await send(request("api/sessions/\(id)/interrupt", method: "POST"), as: OK.self)
     }
 
     /// 結束那個 Claude 並關掉 iTerm2 分頁（回不來）
     func close(_ id: String) async throws {
+        if let demo { return try await demo.close(id) }
         _ = try await send(request("api/sessions/\(id)/close", method: "POST"), as: OK.self)
     }
 
     /// 照片傳到筆電，回傳存好的絕對路徑（給 Claude 用 Read 看）
     func upload(_ id: String, jpeg: Data) async throws -> String {
+        if let demo { return try await demo.upload(id) }
         struct Saved: Decodable { let path: String }
         var req = request("api/sessions/\(id)/upload", method: "POST",
                           body: ["data": jpeg.base64EncodedString(), "ext": "jpg"])
@@ -284,44 +297,53 @@ struct API {
     }
 
     func star(_ id: String, _ starred: Bool) async throws {
+        if let demo { return try await demo.star(id, starred) }
         _ = try await send(request("api/sessions/\(id)/star", method: "POST", body: ["starred": starred]), as: OK.self)
     }
 
     struct ServerSettings: Codable { let star_only_push: Bool }
 
     func settings() async throws -> ServerSettings {
-        try await send(request("api/settings"), as: ServerSettings.self)
+        if let demo { return await demo.settings() }
+        return try await send(request("api/settings"), as: ServerSettings.self)
     }
 
     func setStarOnlyPush(_ on: Bool) async throws -> ServerSettings {
-        try await send(request("api/settings", method: "POST", body: ["star_only_push": on]), as: ServerSettings.self)
+        if let demo { return await demo.setStarOnlyPush(on) }
+        return try await send(request("api/settings", method: "POST", body: ["star_only_push": on]), as: ServerSettings.self)
     }
 
     func quota() async throws -> Quota {
-        try await send(request("api/quota"), as: Quota.self)
+        if let demo { return await demo.quota() }
+        return try await send(request("api/quota"), as: Quota.self)
     }
 
     /// 鎖定畫面即時狀態的推播 token。kind：update（更新正開著的）／start（讓筆電遠端開一個）
     func registerActivity(token: String, kind: String) async throws {
+        if demo != nil { return }
         _ = try await send(request("api/activities", method: "POST",
                                    body: ["token": token, "env": "sandbox", "kind": kind]), as: OK.self)
     }
 
     func options() async throws -> Options {
-        try await send(request("api/options"), as: Options.self)
+        if let demo { return await demo.options() }
+        return try await send(request("api/options"), as: Options.self)
     }
 
     /// prompt：第一句話（空的就只開 claude 等你打）
     func newSession(directory: String, account: String, prompt: String = "") async throws -> String {
-        try await send(request("api/sessions", method: "POST",
+        if let demo { return await demo.newSession(directory: directory, account: account, prompt: prompt) }
+        return try await send(request("api/sessions", method: "POST",
                                body: ["directory": directory, "account": account, "prompt": prompt]), as: Created.self).id
     }
 
     func toolDetail(_ id: String, message: String) async throws -> ToolDetail {
-        try await send(request("api/sessions/\(id)/tools/\(message)"), as: ToolDetail.self)
+        if let demo { return try await demo.toolDetail(id, message: message) }
+        return try await send(request("api/sessions/\(id)/tools/\(message)"), as: ToolDetail.self)
     }
 
     func search(_ id: String, query: String) async throws -> [SearchHit] {
+        if let demo { return try await demo.search(id, query: query) }
         struct Hits: Decodable { let hits: [SearchHit] }
         var comps = URLComponents(url: base.appendingPathComponent("api/sessions/\(id)/search"), resolvingAgainstBaseURL: false)!
         comps.queryItems = [URLQueryItem(name: "q", value: query)]
@@ -331,12 +353,24 @@ struct API {
     }
 
     func registerDevice(token: String) async throws {
+        if demo != nil { return }
         // 用 Xcode 直接裝的開發版，推播 token 屬於 sandbox 環境
         _ = try await send(request("api/devices", method: "POST", body: ["token": token, "env": "sandbox"]), as: OK.self)
     }
 
     /// SSE：每收到一行 data 就呼叫 onChange。連線斷掉就拋錯，由呼叫端重連。
     func events(onChange: @escaping @MainActor () -> Void) async throws {
+        if let demo {
+            // 展示模式：每半秒看一次假資料有沒有變，變了就照 SSE 的方式通知
+            var seen = await demo.version
+            await onChange()
+            while !Task.isCancelled {
+                try await Task.sleep(nanoseconds: 500_000_000)
+                let v = await demo.version
+                if v != seen { seen = v; await onChange() }
+            }
+            return
+        }
         var req = request("api/events")
         req.timeoutInterval = 60
         let (bytes, resp) = try await URLSession.shared.bytes(for: req)

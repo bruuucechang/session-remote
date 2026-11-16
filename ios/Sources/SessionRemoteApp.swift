@@ -57,7 +57,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         center.delegate = self
         #if DEBUG
         // 模擬器驗收（見 Store.init）時不要跳推播權限框，會蓋住截圖
-        if ProcessInfo.processInfo.environment["SR_URL"] != nil { return true }
+        let env = ProcessInfo.processInfo.environment
+        if env["SR_URL"] != nil || env["SR_DEMO"] == "1" { return true }
         #endif
         center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
             guard granted else { return }
