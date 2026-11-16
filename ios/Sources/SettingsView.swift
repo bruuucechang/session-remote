@@ -75,6 +75,8 @@ struct SettingsView: View {
             if firstRun {
                 Section {
                     Button("先看看（展示模式）") { store.enterDemo() }
+                        // 配對連線還在跑時不准進：連線晚點成功會 save()、把人從展示模式踢回真的筆電
+                        .disabled(busy)
                 } footer: {
                     Text("還沒在筆電上裝 session-remote？先用 app 內建的假資料看看怎麼用：列表、對話、回答題目都能按，不會連網。之後在設定頁可以退出。")
                 }
