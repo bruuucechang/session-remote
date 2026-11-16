@@ -37,7 +37,8 @@ say "✓ iTerm2、node、Python（${PY}）、Tailscale 都在"
 
 # --- .env 與通行碼 ---
 if [ ! -f "$DIR/.env" ]; then run cp "$DIR/.env.example" "$DIR/.env"; fi
-if [ "$DRY" = 0 ] && ! grep -qE '^SESSION_REMOTE_TOKEN=.+' "$DIR/.env"; then
+# 用跟 run.sh 一樣的方式載入 .env 再看值：SESSION_REMOTE_TOKEN="" 這種寫法 grep 會當成有值
+if [ "$DRY" = 0 ] && [ -z "$(set -a; . "$DIR/.env"; printf '%s' "${SESSION_REMOTE_TOKEN:-}")" ]; then
   TOKEN="$("$PY" -c 'import secrets;print(secrets.token_urlsafe(24))')"
   "$PY" - "$DIR/.env" "$TOKEN" <<'PY'
 import sys, re, pathlib

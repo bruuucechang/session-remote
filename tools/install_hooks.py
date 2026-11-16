@@ -29,7 +29,16 @@ def default_settings() -> Path:
 
 # 這支工具自己寫的格式：node <加了引號的 …/hooks/report.mjs> <事件>[ <埠>]。只有這種會被改寫（換埠、搬 repo 後重裝）；
 # 別的寫法（例如作者自己包一層 ext.mjs）當成使用者自己管的，看到就不加也不動。
-MANAGED = re.compile(r"""^node ("[^"]*|'[^']*|[^\s'"]*)/hooks/report\.mjs["']? \w+( \d+)?$""")
+
+
+def managed(cmd: str) -> bool:
+    """用 shell 的規則拆開再比：node <…/hooks/report.mjs> <事件> [<埠>]。路徑含引號、$ 也認得。"""
+    try:
+        a = shlex.split(cmd)
+    except ValueError:
+        return False
+    return (len(a) in (3, 4) and a[0] == "node" and a[1].endswith("/hooks/report.mjs")
+            and a[2].isalnum() and (len(a) == 3 or a[3].isdigit()))
 
 
 def merge(settings: dict, report: Path, port: str = "5391") -> list[str]:
@@ -46,7 +55,7 @@ def merge(settings: dict, report: Path, port: str = "5391") -> list[str]:
             changed.append(ev)
             continue
         for h in mine:
-            if MANAGED.match(h.get("command", "")) and h["command"] != want:
+            if managed(h.get("command", "")) and h["command"] != want:
                 h["command"] = want
                 if ev not in changed:
                     changed.append(ev)
