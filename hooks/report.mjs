@@ -18,7 +18,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const EVENT = process.argv[2] || "";
-const URL = `http://127.0.0.1:${process.env.SESSION_REMOTE_PORT || 5391}/hook`;
+// 埠：環境變數 > 第二個參數（tools/install_hooks.py 在 API_PORT 不是 5391 時會帶）> 5391
+const URL = `http://127.0.0.1:${process.env.SESSION_REMOTE_PORT || process.argv[3] || 5391}/hook`;
 
 function ps(field, pid) {
   return execFileSync("ps", ["-o", `${field}=`, "-p", String(pid)], { encoding: "utf8" }).trim();

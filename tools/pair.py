@@ -5,6 +5,8 @@
 
 網址用這台的 Tailscale IP（手機在外面也連得到）。通行碼從 .env 讀。
 """
+import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -17,7 +19,12 @@ env = dict(l.split("=", 1) for l in (ROOT / ".env").read_text().splitlines() if 
 token = env.get("SESSION_REMOTE_TOKEN", "").strip()
 if not token:
     sys.exit(".env 裡沒有 SESSION_REMOTE_TOKEN")
-ip = subprocess.run(["tailscale", "ip", "-4"], capture_output=True, text=True).stdout.split()
+# App Store 版的 Tailscale 沒有把 tailscale 指令放進 PATH：install.sh 會用 TAILSCALE 傳實際路徑
+ts = os.environ.get("TAILSCALE") or shutil.which("tailscale") or "/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+try:
+    ip = subprocess.run([ts, "ip", "-4"], capture_output=True, text=True).stdout.split()
+except OSError:
+    ip = []
 if not ip:
     sys.exit("拿不到 Tailscale IP（tailscale 沒開？）")
 url = "sessionremote://setup?" + urlencode({"url": f"http://{ip[0]}:{env.get('API_PORT', '5391')}", "token": token})
