@@ -103,7 +103,7 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
   `SR_NEW=1`（開新 session，加 `SR_DIR=<路徑>` 預選資料夾）、`SR_PAGE=30`（一頁幾則）、`SR_SCROLL=top`、`SR_DRAFT`／`SR_FOCUS=1`（輸入框）。
 - **展示模式**（配對頁「先看看」）：資料全來自 `ios/Sources/DemoBackend.swift`，`API` 帶著 `demo` 時每個方法改問它、不打網路；
   不寫 App Group／紅點／即時狀態／草稿、不把推播 token 送去筆電（系統的推播授權照舊在啟動時問），也不記住（重開 app 回配對頁）。截圖用 `SIMCTL_CHILD_SR_DEMO=1 tools/sim-shot.sh out.png [demo-shop]`，
-  UI 測試是 `DemoTests`。小工具 target 也編 `API.swift`，所以 `project.yml` 的 SessionWidgets 要一起列 `DemoBackend.swift`。
+  UI 測試是 `DemoTests`；假資料的行為（不開模擬器）用 `tools/demo-check.sh`。小工具 target 也編 `API.swift`，所以 `project.yml` 的 SessionWidgets 要一起列 `DemoBackend.swift`。
 - **開新 session 要有明顯的送出鈕**：以前點資料夾就直接開，填了第一句話之後鍵盤蓋住清單、使用者找不到哪裡送出。現在點資料夾只是選，按右上角「開始」才開（2026-10-25）。
 - **`simctl boot` 會把當下的 `SIMCTL_CHILD_*` 留在模擬器的系統環境裡**：用 `SIMCTL_CHILD_SR_NEW=1 tools/sim-shot.sh` 開機的模擬器，之後每次啟動 app（含 XCUITest）都帶著 SR_NEW=1、一打開就跳開新 session。`tools/uitest.sh --sim` 每次先重開模擬器（2026-10-25 實測）。
 - **UI 測試的假資料情境**：`FakeBackend.reset("many")`／`launchApp(scenario: "empty")` 換成 `backend/tests/fixtures/uitest/scenario-<名字>.json`；

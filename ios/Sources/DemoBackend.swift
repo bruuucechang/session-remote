@@ -19,6 +19,8 @@ final class DemoBackend {
         var messages: [Message]
         var context: Int?
         var starred = false
+        /// 第幾輪工作：延遲完工只准完成自己那一輪（中斷後馬上又送一句，舊的那輪不能搶走新的）
+        var turn = 0
     }
 
     private var items: [Demo]
@@ -117,10 +119,13 @@ final class DemoBackend {
         items[i].status = "working"
         items[i].activity = activity
         items[i].since = Date()
+        items[i].turn += 1
+        let turn = items[i].turn
         changed()
         Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 2_500_000_000)
-            guard let self, let j = self.items.firstIndex(where: { $0.id == id }), self.items[j].status == "working" else { return }
+            guard let self, let j = self.items.firstIndex(where: { $0.id == id }),
+                  self.items[j].turn == turn, self.items[j].status == "working" else { return }
             self.append(j, "assistant", finish)
             self.items[j].status = "done"
             self.items[j].activity = ""
