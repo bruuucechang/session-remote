@@ -112,7 +112,8 @@ flowchart TD
 需要：一台 Mac，裝好 [iTerm2](https://iterm2.com)、[Tailscale](https://tailscale.com)、node、Python 3.10 以上，
 在 iTerm2 裡跑 Claude Code；iPhone 也裝 Tailscale、登入同一個帳號。
 
-1. iPhone 從 TestFlight 公開連結裝 Sessions（連結上線後補在這裡）。
+1. iPhone 先裝 [TestFlight](https://apps.apple.com/app/testflight/id899247664)，再從公開連結裝 Sessions（連結審核通過後補在這裡）。
+   還沒裝 Mac 端也能先在配對頁按「先看看（展示模式）」試玩。
 2. Mac 上：
 
    ```bash
@@ -128,6 +129,7 @@ flowchart TD
 
 限制：沒有推播（等你回答、做完的通知、鎖定畫面與動態島要作者的推播金鑰）；只認 iTerm2 裡的 Claude Code；
 預設只認 `~/.claude` 一個設定目錄；Mac 要保持喚醒。
+TestFlight 版每次上傳 90 天後過期，要從 TestFlight 更新。隱私權政策：[docs/privacy.md](docs/privacy.md)（不收集任何資料）。
 
 ## 怎麼跑
 <!-- readme:run 2026-11-13 -->

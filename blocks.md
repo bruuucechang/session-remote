@@ -24,7 +24,9 @@
 - 做法：String Catalog `ios/Resources/Localizable.xcstrings`（key＝繁中原文、241 條）；後端訊息由 app 的 `serverText()` 翻，後端沒改；核對工具 `tools/l10n-check.py`
 - 沒翻：推播與即時狀態推播的內容（別人沒有推播，規格裁示），作者自己用繁中
 
-## B9 TestFlight 上傳到送審前  [未開始]
+## B9 TestFlight 上傳到送審前  [擱置 2026-11-18]
+- 擱置時的進度（分支 `pr/261118-b9-prep`）：出口管制宣告、`docs/privacy.md`、README 怎麼裝、拿掉預設的作者 IP 都已做完；Release archive 成功；UI 測試 42 個全過、Release 版展示模式 4 項過。
+  還沒做：App Store Connect 建 app、上傳、填 TestFlight 資料。待決定：公開版要不要關掉開 app 就詢問通知（別人收不到推播）
 - 目標：隱私權政策頁、export compliance、版本號就緒；Archive 上傳成功；App Store Connect 建好 app、填好測試資訊與公開連結設定，**停在送審前**
 - 驗收：TestFlight 看得到處理完的 build；送審表單填完、截圖給使用者看；聯絡資料向使用者要
 - 碰：`ios/project.yml`、`docs/privacy.md`（新）、README「怎麼裝」

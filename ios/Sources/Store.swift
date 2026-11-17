@@ -6,7 +6,7 @@ import WidgetKit
 /// 全 app 共用的狀態：連線設定、session 列表、即時更新。
 @MainActor
 final class Store: ObservableObject {
-    @Published var serverURL: String = UserDefaults.standard.string(forKey: "serverURL") ?? "http://100.72.62.85:5391"
+    @Published var serverURL: String = UserDefaults.standard.string(forKey: "serverURL") ?? ""  // 公開版：別人第一次打開不能預填作者的 IP
     @Published var token: String = Keychain.get("token") ?? ""
     @Published var sessions: [SessionSummary] = []
     @Published var error: String?

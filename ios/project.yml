@@ -22,7 +22,8 @@ targets:
     entitlements:
       path: SessionRemote.entitlements
       properties:
-        # 不上架、只用 Xcode 裝到自己的手機：開發環境的推播
+        # 寫 development：作者自己用 Xcode 裝的開發版走 sandbox 推播。
+        # TestFlight 版不用改這裡——匯出成 app-store-connect 時 Xcode 依發布描述檔自動換成 production（B9）
         aps-environment: development
         # 跟小工具共用連線設定（網址與通行碼）
         com.apple.security.application-groups: [group.com.bruuucechang.sessionremote]
@@ -30,6 +31,8 @@ targets:
       path: Info.plist
       properties:
         CFBundleDisplayName: Sessions
+        # 只用系統內建的網路（沒有自己的加密），TestFlight 上傳不用每次回答出口管制
+        ITSAppUsesNonExemptEncryption: false
         # 宣告繁中：不然手機語言是英文時，系統元件（確認框的取消、搜尋沒結果）會講英文
         CFBundleDevelopmentRegion: zh-Hant
         CFBundleLocalizations: [zh-Hant, en]

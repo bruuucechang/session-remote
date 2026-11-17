@@ -80,6 +80,14 @@ final class DemoTests: XCTestCase {
         XCTAssertTrue(app.any("personal").waitForExistence(timeout: 10), "展示模式沒有假額度，測不出來")
         let gear = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "設定")).firstMatch
         gear.tap()
+        // 網址自己打：Release 版不吃 SR_URL，別人第一次打開網址欄是空的（B9）
+        let urlField = app.textFields.firstMatch
+        XCTAssertTrue(urlField.waitForExistence(timeout: 5))
+        urlField.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.5)).tap()
+        if let old = urlField.value as? String, !old.isEmpty, old != urlField.placeholderValue {
+            urlField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: old.count))
+        }
+        urlField.typeText(FakeBackend.url)
         let field = app.secureTextFields.firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.5)).tap()
