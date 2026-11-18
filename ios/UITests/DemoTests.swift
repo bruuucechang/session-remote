@@ -29,7 +29,7 @@ final class DemoTests: XCTestCase {
         XCTAssertTrue(app.any("Waiting for you").exists, "分區標題不是英文")
         XCTAssertFalse(app.any("等你回答").exists, "英文介面還有中文分區標題")
         shot(app, "en-list")
-        app.row("shop").tap()
+        app.staticTexts["shop"].tap()
         let fly = option(app, "Fly.io")
         XCTAssertTrue(fly.waitForExistence(timeout: 10), "題目卡沒出來")
         XCTAssertTrue(app.any("Where should it be deployed?").exists, "假資料題目不是英文")
@@ -50,7 +50,7 @@ final class DemoTests: XCTestCase {
 
     func testAnswerQuestionAndExit() throws {
         let app = try enterDemo()
-        app.row("shop").tap()
+        app.staticTexts["shop"].tap()
         let fly = option(app, "Fly.io")
         XCTAssertTrue(fly.waitForExistence(timeout: 10), "題目卡沒出來")
         shot(app, "demo-ask")
@@ -93,7 +93,7 @@ final class DemoTests: XCTestCase {
 
     func testPermissionPrompt() throws {
         let app = try enterDemo()
-        app.row("api").tap()
+        app.staticTexts["api"].tap()
         let allow = option(app, "允許")
         XCTAssertTrue(allow.waitForExistence(timeout: 10), "權限提示沒出來")
         allow.tap()

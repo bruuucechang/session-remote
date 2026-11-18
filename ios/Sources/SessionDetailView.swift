@@ -12,13 +12,15 @@ struct SessionDetailView: View {
     @State private var error: String?
     @State private var text = ""
     @State private var sending = false
+    @State private var pendingReplies: [PendingReply] = []
+    @State private var acknowledgedReplies: Set<String> = []
     /// 每次 load 的序號：比較慢回來的舊結果（例如上一題的選項）不准蓋掉新的
     @State private var loadSeq = 0
     /// 整頁高度：題目＋選項的捲動區最多佔一半多一點
     @State private var screenHeight: CGFloat = 800
     @State private var showKeys = false
     @State private var showScreen = false
-    @FocusState private var inputFocused: Bool
+    @State private var inputFocused = false
     @State private var optionsHeight: CGFloat = 0
     @State private var photoItem: PhotosPickerItem?
     @State private var uploading = false
@@ -64,6 +66,13 @@ struct SessionDetailView: View {
                         case .tools(let ms): ToolGroupView(tools: ms) { openTool = $0 }
                         }
                     }
+                    ForEach(pendingReplies) { reply in
+                        VStack(alignment: .trailing, spacing: 4) {
+                            MessageView(m: reply.message)
+                            Text("送出中").font(.caption).foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
                     if showScreen, let screen = detail?.screen, !screen.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             Text(screen.joined(separator: "\n"))
@@ -83,7 +92,7 @@ struct SessionDetailView: View {
             .defaultScrollAnchor(.bottom)
             .overlay {
                 // 剛開的 session 還沒有任何訊息：講清楚是還沒開始，不是載入壞了
-                if let d = detail, messages.isEmpty, d.prompt == nil, !showScreen {
+                if let d = detail, messages.isEmpty, pendingReplies.isEmpty, d.prompt == nil, !showScreen {
                     ContentUnavailableView {
                         Label("還沒有對話", systemImage: "bubble.left.and.bubble.right")
                     } description: {
@@ -98,6 +107,9 @@ struct SessionDetailView: View {
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: messages.last?.id) { _, _ in
                 withAnimation { proxy.scrollTo("bottom", anchor: .bottom) }
+            }
+            .onChange(of: pendingReplies.last?.id) { _, id in
+                if id != nil { withAnimation { proxy.scrollTo("bottom", anchor: .bottom) } }
             }
             #if DEBUG
             // 模擬器驗收：SR_SCROLL=top 載入後捲到最上面（無頭模擬器沒辦法用手滑）
@@ -271,10 +283,7 @@ struct SessionDetailView: View {
                 blocked: detail?.prompt != nil && detail?.prompt?.type_key == nil,
                 focus: $inputFocused
             ) {
-                let t = text
-                // 在題目卡上打字回答：送出後收鍵盤，下一題的選項才看得到
-                let hadPrompt = detail?.prompt != nil
-                act { try await $0.reply(sessionID, text: t); text = ""; if hadPrompt { inputFocused = false } }
+                sendReply()
             }
             }
         }
@@ -286,15 +295,10 @@ struct SessionDetailView: View {
     }
 
     @ViewBuilder private func promptView(_ d: SessionDetail, _ p: Prompt) -> some View {
-        // 只藏「Type something／Other」那一行（靠下面的輸入框打字）；權限提示的「No, and tell Claude…」、
-        // 計畫核准的「Tell Claude what to change」、複選題打過字的那一行都還是按鈕
-        let isTypeRow = { (o: PromptOption) in
-            o.key == p.type_key && (o.label.hasPrefix("Type something") || ["Other", "其他"].contains(o.label.trimmingCharacters(in: CharacterSet(charactersIn: "."))))  // l10n:skip 比對 Claude Code 原文
-        }
-        let options = p.options.filter { !isTypeRow($0) && !$0.label.hasPrefix("Chat about") }
-        let current = PromptMatch(pending: d.pending, prompt: p)
-        let words = PromptWords(pending: d.pending, prompt: p, match: current, cwd: d.cwd,
-                                awaitingTool: d.awaiting_tool?.tool)
+        let presentation = PromptPresentation(detail: d, prompt: p)
+        let options = presentation.options
+        let current = presentation.match
+        let words = presentation.words
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: d.pending?.kind == "ask" ? "questionmark.bubble.fill" : "hand.raised.fill")
@@ -459,6 +463,57 @@ struct SessionDetailView: View {
         return UIGraphicsImageRenderer(size: size).image { _ in img.draw(in: CGRect(origin: .zero, size: size)) }
     }
 
+    private struct PendingReply: Identifiable {
+        let message: Message
+        let knownIDs: Set<String>
+        var id: String { message.id }
+    }
+
+    private func sendReply() {
+        guard let api = store.api, !sending else { return }
+        let original = text
+        let reply = PendingReply(
+            message: Message(id: UUID().uuidString, role: "user", text: original, tool: nil, ts: nil),
+            knownIDs: Set(messages.map(\.id)))
+        text = ""
+        store.setDraft(sessionID, "")
+        inputFocused = false
+        error = nil
+        sending = true
+        pendingReplies.append(reply)
+        // 不依賴下一次輪詢；筆電紀錄還沒出現，也最多只保留 15 秒。
+        Task {
+            try? await Task.sleep(for: .seconds(15))
+            pendingReplies.removeAll { $0.id == reply.id }
+        }
+        Task {
+            defer { sending = false }
+            do {
+                try await api.reply(sessionID, text: original)
+                await load()
+            } catch {
+                pendingReplies.removeAll { $0.id == reply.id }
+                // 等回應時使用者可能已開始打下一句，失敗還原不能吃掉那句。
+                text = original + (text.isEmpty ? "" : "\n" + text)
+                store.setDraft(sessionID, text)
+                self.error = error.localizedDescription
+            }
+        }
+    }
+
+    private func reconcileReplies() {
+        pendingReplies.removeAll { reply in
+            let normalized = reply.message.text.replacingOccurrences(of: "\r\n", with: "\n")
+                .replacingOccurrences(of: "\r", with: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let found = messages.first(where: {
+                $0.role == "user" && !reply.knownIDs.contains($0.id) && !acknowledgedReplies.contains($0.id)
+                    && $0.text.trimmingCharacters(in: .whitespacesAndNewlines) == normalized
+            }) else { return false }
+            acknowledgedReplies.insert(found.id)
+            return true
+        }
+    }
+
     private func act(_ f: @escaping (API) async throws -> Void) {
         guard let api = store.api else { return }
         sending = true
@@ -491,6 +546,7 @@ struct SessionDetailView: View {
                 let have = Set(messages.map(\.id))
                 messages += d.messages.filter { !have.contains($0.id) }
             }
+            reconcileReplies()
             detail = d
             error = nil
             #if DEBUG
@@ -519,7 +575,7 @@ private struct OptionButton: View {
     let action: () -> Void
 
     var body: some View {
-        let (label, recommended) = Self.split(text)
+        let (label, recommended) = PromptPresentation.split(text)
         Button(action: action) {
             HStack(alignment: .top, spacing: 10) {
                 if let checked = option.checked {
@@ -566,144 +622,6 @@ private struct OptionButton: View {
         // 讀出來的順序：標籤、推薦、說明（不念左邊的編號圓圈）；複選題另外念勾了沒
         .accessibilityLabel([label, recommended ? String(localized: "推薦") : nil, description].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: String(localized: "，")))
         .accessibilityValue(option.checked.map { $0 ? "已勾" : "沒勾" } ?? "")
-    }
-
-    static func split(_ label: String) -> (String, Bool) {
-        for tag in [" (Recommended)", "(Recommended)", "（Recommended）"] where label.hasSuffix(tag) {  // l10n:skip 比對 Claude Code 原文
-            return (String(label.dropLast(tag.count)).trimmingCharacters(in: .whitespaces), true)
-        }
-        return (label, false)
-    }
-}
-
-/// 一次問好幾題時，hook 回報的是整張題目表，畫面上顯示的卻是「目前這一題」的選項。
-/// 用選項標籤比對出目前是第幾題，題目與說明才不會錯配（之前一律拿第一題）。
-struct PromptMatch {
-    let question: Question?
-    let index: Int
-    let total: Int
-
-    init(pending: Pending?, prompt: Prompt) {
-        let qs = pending?.kind == "ask" ? (pending?.questions ?? []) : []
-        total = qs.count
-        let screen = prompt.options.map { Self.norm($0.label) }
-        var best = (index: 0, score: -1)
-        for (i, q) in qs.enumerated() {
-            let score = (q.options ?? []).filter { o in
-                let n = Self.norm(o.label)
-                return screen.contains { Self.same($0, n) }
-            }.count
-            if score > best.score { best = (i, score) }
-        }
-        index = best.index
-        question = qs.isEmpty ? nil : qs[best.index]
-    }
-
-    var title: String? { question?.question }
-
-    var badge: String? {
-        guard let q = question else { return nil }
-        let head = q.header ?? String(localized: "選一個")
-        return total > 1 ? String(localized: "\(head) · 第 \(index + 1)／\(total) 題") : head
-    }
-
-    func description(for label: String) -> String? {
-        let n = Self.norm(label)
-        return question?.options?.first { Self.same(Self.norm($0.label), n) }?.description
-    }
-
-    private static func norm(_ s: String) -> String {
-        s.replacingOccurrences(of: "…", with: "").trimmingCharacters(in: .whitespaces)
-    }
-
-    /// 終端機太窄時標籤會被截斷，所以前綴相同也算
-    private static func same(_ a: String, _ b: String) -> Bool {
-        guard !a.isEmpty, !b.isEmpty else { return false }
-        return a == b || (min(a.count, b.count) >= 6 && (a.hasPrefix(b) || b.hasPrefix(a)))
-    }
-}
-
-/// 題目卡的標頭、標題與選項顯示的字。選項題用 hook 回報的題目；權限提示、計畫核准、信任資料夾、
-/// 確認頁是 Claude Code 自己的選單，標籤固定是英文，認得的就翻成中文（認不得的照原文）。
-struct PromptWords {
-    enum Kind { case review, trust, plan, ask, permission, other }
-
-    let kind: Kind
-    let badge: String
-    let title: String
-    /// 權限提示：要用的工具（從通知「Claude needs your permission to use Bash」取出）
-    let tool: String?
-
-    /// awaitingTool：後端認出來正在等權限的那一則工具呼叫（拿不準就是 nil）。新版的通知只寫
-    /// 「Claude needs your permission」、沒寫是哪個工具（2026-10-26 v2.1.310 實測），這時用它
-    init(pending: Pending?, prompt: Prompt, match: PromptMatch, cwd: String, awaitingTool: String? = nil) {
-        let message = pending?.message ?? ""
-        let tool = message.range(of: #"permission to use (\S+)"#, options: .regularExpression)
-            .map { String(message[$0].split(separator: " ").last ?? "") } ?? awaitingTool
-        if let review = prompt.review {
-            kind = .review
-            badge = String(localized: "確認答案 · 共 \(review.count) 題")
-            title = String(localized: "要送出這幾題的答案嗎？")
-        } else if pending?.kind != "ask",
-                  prompt.options.contains(where: { ["Yes, I trust this folder", "Yes, proceed"].contains($0.label) }),
-                  prompt.options.contains(where: { $0.label == "No, exit" }) {
-            // 剛開、還沒回報過的 session 卡在這裡：hook 還沒跑，只有畫面上的選項
-            kind = .trust
-            badge = String(localized: "第一次在這個資料夾開 Claude")
-            let name = (cwd as NSString).lastPathComponent
-            title = name.isEmpty ? String(localized: "要信任這個資料夾嗎？") : String(localized: "要信任「\(name)」這個資料夾嗎？")
-        } else if pending?.plan == true
-                    // 權限通知可能把 hook 記的 plan 旗子蓋掉：畫面上是計畫核准的選項也算
-                    || prompt.options.contains(where: { $0.label == "Tell Claude what to change" || $0.label.hasPrefix("Yes, and use auto mode") }) {
-            kind = .plan
-            badge = String(localized: "計畫核准")
-            title = message.isEmpty ? String(localized: "計畫寫好了，要照著做嗎？") : serverText(message)
-        } else if pending?.kind == "ask" {
-            kind = .ask
-            badge = match.badge ?? String(localized: "選一個")
-            title = match.title ?? pending?.headline ?? String(localized: "Claude 在等你選")
-        } else if pending?.kind == "permission" {
-            kind = .permission
-            badge = String(localized: "要你允許")
-            title = tool.map { String(localized: "Claude 要用 \($0)，允許嗎？") }
-                ?? (message.isEmpty || message.hasPrefix("Claude needs your permission") ? String(localized: "Claude 要你允許，允許嗎？") : message)
-        } else {
-            kind = .other
-            badge = String(localized: "Claude 在等你")
-            title = pending?.headline ?? String(localized: "Claude 在等你選")
-        }
-        self.tool = kind == .permission ? tool : nil
-    }
-
-    func label(_ raw: String) -> String {
-        // 權限提示最後一項帶著「(esc)」：手機上沒有 Esc 鍵的意思
-        let s = raw.hasSuffix(" (esc)") ? String(raw.dropLast(6)) : raw
-        switch kind {
-        case .review:
-            return ["Submit answers": String(localized: "送出答案"), "Cancel": String(localized: "取消，回去改")][s] ?? s
-        case .trust:
-            return ["No, exit": String(localized: "不信任，離開"), "Yes, I trust this folder": String(localized: "信任這個資料夾"),
-                    "Yes, proceed": String(localized: "信任，繼續")][s] ?? s
-        case .plan:
-            if let t = ["Yes, and use auto mode": String(localized: "核准，接著自動做"), "Yes, manually approve edits": String(localized: "核准，每次改檔先問我"),
-                        "Yes, and auto-accept edits": String(localized: "核准，改檔不用問我"), "Tell Claude what to change": String(localized: "要改計畫（按了再打字）")][s] {
-                return t
-            }
-            return s
-        case .permission:
-            if s == "Yes" { return String(localized: "允許") }
-            if s == "No" { return String(localized: "不允許") }
-            if s.hasPrefix("No, and tell Claude") { return String(localized: "不允許，告訴 Claude 怎麼做（按了再打字）") }
-            if s.hasPrefix("Yes, and don't ask again") {
-                // 後半段是規則（「for npm run build commands in …」），照原文留著
-                let rest = s.dropFirst("Yes, and don't ask again".count).trimmingCharacters(in: .whitespaces)
-                return rest.isEmpty ? String(localized: "允許，之後不再問") : String(localized: "允許，之後不再問：\(rest)")
-            }
-            if s.hasPrefix("Yes, allow all edits") { return String(localized: "允許，這次 session 改檔都不再問") }
-            return s
-        case .ask, .other:
-            return s
-        }
     }
 }
 

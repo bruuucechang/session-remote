@@ -25,6 +25,7 @@ final class DemoBackend {
 
     private var items: [Demo]
     private var starOnly = false
+    private var donePush = false
     /// 每次狀態變了就 +1；events() 看到變了就通知畫面重抓（模擬筆電的 SSE）
     private(set) var version = 1
     private var serial = 0
@@ -226,7 +227,12 @@ final class DemoBackend {
         changed()
     }
 
-    func settings() -> API.ServerSettings { API.ServerSettings(star_only_push: starOnly) }
+    func settings() -> API.ServerSettings { API.ServerSettings(star_only_push: starOnly, done_push: donePush) }
+
+    func setDonePush(_ on: Bool) -> API.ServerSettings {
+        donePush = on
+        return settings()
+    }
 
     func setStarOnlyPush(_ on: Bool) -> API.ServerSettings {
         starOnly = on

@@ -79,7 +79,17 @@ backend/app/repositories/    ← 唯一碰外面的地方（iTerm2、ps、紀錄
   卡著時 AppleScript 全部逾時。已把預設設定檔的「Set locale variables automatically」關掉。
 - **被 Esc 中斷時不會觸發 Stop hook**，`actions.interrupt` 自己把狀態改成待命。
 - **輸入框不要用 `TextField(axis: .vertical)`**：超過 lineLimit 之後不會捲到游標，打多行時新字掉到框外看不到。
-  改用 `ios/Sources/Composer.swift`（TextEditor＋量高度，長到上限就框內捲動，要 `.clipped()`）。
+  改用 `ios/Sources/Composer.swift`（包 UITextView＋量高度，長到上限就框內捲動，要 `.clipped()`）。
+- **送出要當下就清空輸入框**：以前等 `api.reply` 回來（1～2 秒）才清，使用者看到上一句一直掛著（2026-11-18）。
+  中文組字中（marked text）光把 binding 設成空字串清不掉，`Composer` 送出前先 `unmarkText()` 再清 UITextView；
+  送出中的那句先以「送出中」顯示在對話底部（`pendingReplies`），紀錄裡出現同一句或 15 秒後拿掉，失敗把字放回輸入框。
+- **即時狀態（動態島＋鎖定畫面）只在有人等你回答時存在**（2026-11-18 裁示）：app 的 `ContentState.active` 與後端
+  `notify.activity_payload` 都是 `waiting > 0`，結束立刻消失。完工推播預設關（設定 `done_push`）。
+- **列表的等你回答卡片直接有選項按鈕**（`PromptPresentation.quickOptions`）：只放按一下就送的（單選、權限、計畫核准），
+  複選／確認頁／信任資料夾顯示「點進去回答」。按鈕要 `.buttonStyle(.borderless)` 才不會被整列 NavigationLink 吃掉；
+  文字色要明寫 `Color.primary`／`Color.secondary`，不然 borderless 按鈕裡的 `.secondary` 會被染成藍色。
+- **在 `*-lanes` 底下跑 `tools/uitest.sh` 時 NewSessionTests 會紅**：假專案路徑含 `-lanes`，被開新 session 的「隱藏 lane 資料夾」規則藏掉。
+  從不含 `-lanes` 的 symlink 跑（例：`ln -s <lane> /tmp/session-remote-x && cd /tmp/session-remote-x && tools/uitest.sh --sim`）。
 - **一次問好幾題時，hook 回報的是整張題目表，畫面顯示的是「目前那一題」**：題目與說明要用選項標籤比對出第幾題
   （`PromptMatch`），不能拿第一題。
 - **一次問好幾題、答完最後一題後的確認頁（Review your answers → `1. Submit answers`／`2. Cancel`）沒有頁尾**，

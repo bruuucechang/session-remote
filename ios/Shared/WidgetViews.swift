@@ -121,11 +121,6 @@ struct LockScreenView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 count(state.waiting, String(localized: "等你"), "questionmark.bubble.fill", .orange)
-                count(state.working, String(localized: "工作中"), "ellipsis.circle.fill", .blue)
-                if state.background > 0 {
-                    count(state.background, String(localized: "背景"), "hourglass.circle.fill", .purple)
-                }
-                count(state.done, String(localized: "完工"), "checkmark.circle.fill", .green)
                 Spacer()
             }
             Text(state.headline)
