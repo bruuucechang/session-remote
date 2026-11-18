@@ -42,8 +42,8 @@ extension SessionsActivityAttributes.ContentState {
         headline = try c.decode(String.self, forKey: .headline)
     }
 
-    /// 還有東西在跑或在等你：即時狀態要留著
-    var active: Bool { working + waiting + background > 0 }
+    /// 只有等你回答時才需要即時狀態
+    var active: Bool { waiting > 0 }
 }
 
 extension SessionSummary {

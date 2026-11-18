@@ -11,6 +11,9 @@ struct SettingsView: View {
     @State private var failure: String?
     /// 筆電上的設定（nil＝還沒讀到）
     @State private var starOnly: Bool?
+    @State private var donePush: Bool?
+    @State private var savingPush = false
+    @State private var pushError: String?
 
     private var changed: Bool { url != store.serverURL || token != store.token }
 
@@ -81,19 +84,23 @@ struct SettingsView: View {
                     Text("還沒在筆電上裝 session-remote？先用 app 內建的假資料看看怎麼用：列表、對話、回答題目都能按，不會連網。之後在設定頁可以退出。")
                 }
             }
-            if let on = starOnly {
+            if let done = donePush, let star = starOnly {
                 Section {
-                    Toggle("完工只推標星號的", isOn: Binding(
-                        get: { on },
-                        set: { v in
-                            starOnly = v
-                            Task { starOnly = (try? await store.api?.setStarOnlyPush(v))?.star_only_push ?? !v }
-                        }))
+                    Toggle("完工也推播", isOn: Binding(
+                        get: { done }, set: { savePush(done: $0) }))
+                    if done {
+                        Toggle("完工只推標星號的", isOn: Binding(
+                            get: { star }, set: { savePush(star: $0) }))
+                    }
+                    if let pushError {
+                        Text(pushError).font(.footnote).foregroundStyle(.red)
+                    }
                 } header: {
                     Text("推播")
                 } footer: {
-                    Text("開了之後，沒標星號的 session 完工不跳通知；等你回答的照樣會跳。")
+                    Text("等你回答時一律推播；完工通知可以另外開啟。")
                 }
+                .disabled(savingPush)
             }
             if !firstRun {
                 Section("狀態") {
@@ -115,7 +122,27 @@ struct SettingsView: View {
             token = store.token
         }
         .task {
-            if !firstRun { starOnly = (try? await store.api?.settings())?.star_only_push }
+            if !firstRun, let settings = try? await store.api?.settings() {
+                starOnly = settings.star_only_push
+                donePush = settings.done_push
+            }
+        }
+    }
+
+    private func savePush(done: Bool? = nil, star: Bool? = nil) {
+        guard let api = store.api, !savingPush else { return }
+        savingPush = true
+        pushError = nil
+        Task {
+            defer { savingPush = false }
+            do {
+                let settings: API.ServerSettings
+                if let done { settings = try await api.setDonePush(done) }
+                else if let star { settings = try await api.setStarOnlyPush(star) }
+                else { return }
+                donePush = settings.done_push
+                starOnly = settings.star_only_push
+            } catch { pushError = error.localizedDescription }
         }
     }
 

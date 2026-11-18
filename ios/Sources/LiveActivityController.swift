@@ -4,8 +4,8 @@ import Foundation
 /// 鎖定畫面與動態島的即時狀態。
 ///
 /// app 開著時自己更新；app 不在前景時由筆電推播更新（所以要把 Activity 的推播 token 報給筆電）。
-/// 全部停下來就結束（留 15 分鐘再消失）。iOS 17.2 起還有「遠端開啟」的 token：
-/// app 沒開的時候有 session 開始工作，筆電也能把它叫出來。
+/// 沒有等你回答的就立刻結束。iOS 17.2 起還有「遠端開啟」的 token：
+/// app 沒開的時候有 session 等你回答，筆電也能把它叫出來。
 @MainActor
 final class LiveActivityController {
     static let shared = LiveActivityController()
@@ -40,17 +40,23 @@ final class LiveActivityController {
         let state = Summary.state(sessions)
         let active = state.active
         let content = ActivityContent(state: state, staleDate: nil)
-        // 結束後的那個還會留在 activities 裡（狀態 .ended，15 分鐘後才消失）：更新它沒有用，要找還活著的
+        // 只更新還活著的活動，不重用已結束的活動
         if let a = Activity<SessionsActivityAttributes>.activities.first(where: { $0.activityState == .active || $0.activityState == .stale }) {
             Task {
                 if active {
                     await a.update(content)
                 } else {
-                    await a.end(content, dismissalPolicy: .after(.now.addingTimeInterval(15 * 60)))
+                    await a.end(content, dismissalPolicy: .immediate)
                 }
             }
         } else if active {
-            if let a = try? Activity.request(attributes: SessionsActivityAttributes(), content: content, pushType: .token) {
+            #if DEBUG && targetEnvironment(simulator)
+            // 離線、免簽章的無頭驗收沒有 APNs entitlement；只建立本機活動。
+            let pushType: PushType? = env["SR_ACTIVITY"] == "1" ? nil : .token
+            #else
+            let pushType: PushType? = .token
+            #endif
+            if let a = try? Activity.request(attributes: SessionsActivityAttributes(), content: content, pushType: pushType) {
                 observe(a)
             }
         }

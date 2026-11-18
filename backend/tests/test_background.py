@@ -90,10 +90,11 @@ def test_background_finished_after_new_turn_no_push(tracked, monkeypatch):
     assert tracked == [] and sessions._bg == {}
 
 
-def test_activity_counts_background_as_active():
+def test_activity_ignores_background_only():
+    # 2026-11-18 起即時狀態只在有人等你回答時出現：只剩背景在跑就結束
     sm = {"working": 0, "waiting": 0, "background": 1, "done": 2, "headline": "x"}
     p, _ = notify.activity_payload(sm, None, 1000.0, start=False)
-    assert p["aps"]["event"] == "update" and p["aps"]["content-state"]["background"] == 1
+    assert p["aps"]["event"] == "end" and p["aps"]["content-state"]["background"] == 1
 
 
 def test_idle_background_finished_updates_summary(tracked, monkeypatch):

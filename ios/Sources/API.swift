@@ -263,6 +263,13 @@ struct API {
     }
 
     func reply(_ id: String, text: String) async throws {
+        #if DEBUG
+        // UI 驗收模擬筆電慢回應：確認清空、暫時訊息與收鍵盤都發生在回應之前。
+        if ProcessInfo.processInfo.environment["SR_URL"] != nil,
+           let delay = ProcessInfo.processInfo.environment["SR_REPLY_DELAY"].flatMap(Double.init), delay > 0 {
+            try await Task.sleep(for: .seconds(min(delay, 30)))
+        }
+        #endif
         if let demo { return try await demo.reply(id, text: text) }
         _ = try await send(request("api/sessions/\(id)/reply", method: "POST", body: ["text": text]), as: OK.self)
     }
@@ -301,11 +308,30 @@ struct API {
         _ = try await send(request("api/sessions/\(id)/star", method: "POST", body: ["starred": starred]), as: OK.self)
     }
 
-    struct ServerSettings: Codable { let star_only_push: Bool }
+    struct ServerSettings: Codable {
+        let star_only_push: Bool
+        let done_push: Bool
+
+        init(star_only_push: Bool, done_push: Bool = false) {
+            self.star_only_push = star_only_push
+            self.done_push = done_push
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            star_only_push = try c.decode(Bool.self, forKey: .star_only_push)
+            done_push = try c.decodeIfPresent(Bool.self, forKey: .done_push) ?? false
+        }
+    }
 
     func settings() async throws -> ServerSettings {
         if let demo { return await demo.settings() }
         return try await send(request("api/settings"), as: ServerSettings.self)
+    }
+
+    func setDonePush(_ on: Bool) async throws -> ServerSettings {
+        if let demo { return await demo.setDonePush(on) }
+        return try await send(request("api/settings", method: "POST", body: ["done_push": on]), as: ServerSettings.self)
     }
 
     func setStarOnlyPush(_ on: Bool) async throws -> ServerSettings {

@@ -114,7 +114,7 @@ def session_changed(tty: str) -> None:
 
 
 def settings() -> dict:
-    return {"star_only_push": False, "mute_threads": [], **store.load("settings")}
+    return {"done_push": False, "star_only_push": False, "mute_threads": [], **store.load("settings")}
 
 
 def update_settings(**kw) -> dict:
@@ -126,12 +126,12 @@ def update_settings(**kw) -> dict:
 
 
 def should_alert(view: dict, cfg: dict) -> bool:
-    """跳不跳通知：等你回答一律跳；完工（背景也跑完了）的話，開了「只推星號」就只有標星的才跳。
+    """跳不跳通知：等你回答一律跳；完工要先開「完工也推播」，再看是否只推星號。
     背景跑（回合結束但背景還在）不跳：等背景結束 sessions.check_background 會再叫一次。"""
     if view["status"] == "waiting":
         return True
     if view["status"] == "done":
-        return not cfg.get("star_only_push") or bool(view.get("starred"))
+        return bool(cfg.get("done_push", False)) and (not cfg.get("star_only_push") or bool(view.get("starred")))
     return False
 
 
@@ -178,12 +178,12 @@ def activity_payload(sm: dict, prev: dict | None, now: float, start: bool) -> tu
     state = {"working": sm["working"], "waiting": sm["waiting"], "background": sm.get("background", 0),
              "done": sm["done"], "headline": sm["headline"]}
     aps = {"timestamp": int(now), "content-state": state}
-    active = sm["working"] + sm["waiting"] + sm.get("background", 0) > 0
-    if start:
+    active = sm["waiting"] > 0
+    if start and active:
         aps.update({"event": "start", "attributes-type": "SessionsActivityAttributes", "attributes": {}})
     elif not active:
-        # 都停了：留在鎖定畫面 15 分鐘再自己消失
-        aps.update({"event": "end", "dismissal-date": int(now) + 15 * 60})
+        # 沒有等你回答的就立即消失，即使還有工作或背景任務
+        aps.update({"event": "end", "dismissal-date": int(now)})
     else:
         aps["event"] = "update"
     # 新冒出一個等你回答的才用高優先（會亮螢幕）；其他更新用低優先，省 Apple 給的額度
@@ -198,7 +198,7 @@ def _push_activity(sm: dict, prev: dict | None) -> None:
     acts = store.load("activities")
     updates = {t: v for t, v in acts.items() if v.get("kind") == "update"}
     starts = {t: v for t, v in acts.items() if v.get("kind") == "start"}
-    active = sm["working"] + sm["waiting"] + sm.get("background", 0) > 0
+    active = sm["waiting"] > 0
     dead = []
     if updates:
         payload, prio = activity_payload(sm, prev, time.time(), start=False)

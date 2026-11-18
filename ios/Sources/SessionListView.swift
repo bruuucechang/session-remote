@@ -11,6 +11,15 @@ struct SessionListView: View {
     @State private var query = ""
     /// 關分頁／標星號失敗的原因，顯示在出事的那一列（key 是 session id）
     @State private var rowErrors: [String: String] = [:]
+    @State private var prompts: [String: PromptPresentation] = [:]
+    @State private var answering: Set<String> = []
+    @State private var promptSequence = 0
+
+    private struct PromptRefresh: Hashable {
+        let tick: Int
+        let sessions: [SessionSummary]
+        let visible: Bool
+    }
 
     /// 依狀態分組，要你處理的排最上面
     private static let order: [(key: String, title: String)] = [
@@ -99,7 +108,7 @@ struct SessionListView: View {
                 }
             }
             .searchable(text: $query, prompt: "找專案或帳號")
-            .refreshable { await store.refresh() }
+            .refreshable { await store.refresh(); await refreshPrompts() }
             .navigationTitle("Sessions")
             .navigationDestination(for: String.self) { SessionDetailView(sessionID: $0) }
             .toolbar {
@@ -150,6 +159,9 @@ struct SessionListView: View {
             }
             // 列表更新過（筆電那邊有變化）就把列上的舊錯誤清掉，不然網路恢復了還一直掛著
             .onChange(of: store.tick) { rowErrors = [:] }
+            .task(id: PromptRefresh(tick: store.tick, sessions: store.sessions, visible: path.isEmpty)) {
+                if path.isEmpty { await refreshPrompts() }
+            }
             .onChange(of: store.openSession) { _, sid in
                 if let sid { path = [sid]; store.openSession = nil }
             }
@@ -174,7 +186,8 @@ extension SessionListView {
         Section {
             if !foldable || idleExpanded {
                 ForEach(sec.items) { s in
-                    NavigationLink(value: s.id) { SessionRow(s: s, error: rowErrors[s.id]) }
+                    SessionRow(s: s, error: rowErrors[s.id], presentation: prompts[s.id],
+                               answering: answering.contains(s.id)) { option in answer(s, option) }
                         .swipeActions(edge: .leading) {
                             Button { toggleStar(s) } label: {
                                 Label(s.starred == true ? "取消星號" : "標星號",
@@ -216,6 +229,50 @@ extension SessionListView {
         }
     }
 
+    @MainActor
+    private func refreshPrompts() async {
+        guard let api = store.api else { return }
+        promptSequence += 1
+        let sequence = promptSequence
+        let waiting = store.sessions.filter { $0.status == "waiting" }
+        let ids = Set(waiting.map(\.id))
+        prompts = prompts.filter { ids.contains($0.key) }
+        // 各 session 獨立抓取；舊一輪或已取消的結果不能蓋過新題目。
+        await withTaskGroup(of: (String, SessionDetail?, String?).self) { group in
+            for session in waiting {
+                group.addTask {
+                    do { return (session.id, try await api.session(session.id, limit: 1, screen: false), nil) }
+                    catch { return (session.id, nil, error.localizedDescription) }
+                }
+            }
+            for await (id, detail, failure) in group {
+                guard !Task.isCancelled, sequence == promptSequence,
+                      store.sessions.contains(where: { $0.id == id && $0.status == "waiting" }) else { continue }
+                if let detail, let prompt = detail.prompt {
+                    if let old = prompts[id], old.prompt != prompt { rowErrors[id] = nil }
+                    prompts[id] = PromptPresentation(detail: detail, prompt: prompt)
+                } else {
+                    prompts[id] = nil
+                    if let failure { rowErrors[id] = failure }
+                }
+            }
+        }
+    }
+
+    private func answer(_ session: SessionSummary, _ option: PromptOption) {
+        guard let api = store.api, !answering.contains(session.id) else { return }
+        answering.insert(session.id)
+        rowErrors[session.id] = nil
+        Task {
+            defer { answering.remove(session.id) }
+            do {
+                try await api.key(session.id, option.key, label: option.label)
+                await store.refresh()
+                await refreshPrompts()
+            } catch { rowErrors[session.id] = error.localizedDescription }
+        }
+    }
+
     func toggleStar(_ s: SessionSummary) {
         guard let api = store.api else { return }
         Task {
@@ -229,8 +286,53 @@ extension SessionListView {
 struct SessionRow: View {
     let s: SessionSummary
     var error: String? = nil
+    var presentation: PromptPresentation?
+    var answering = false
+    var onAnswer: (PromptOption) -> Void = { _ in }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            NavigationLink(value: s.id) { summary }
+            if s.status == "waiting" {
+                if let presentation, !presentation.quickOptions.isEmpty {
+                    ForEach(presentation.quickOptions, id: \.key) { option in
+                        let display = PromptPresentation.split(presentation.words.label(option.label))
+                        let description = presentation.match.description(for: option.label)
+                        Button { onAnswer(option) } label: {
+                            VStack(alignment: .leading, spacing: 3) {
+                                HStack(spacing: 6) {
+                                    Text(display.0).font(.callout.weight(.medium)).foregroundStyle(Color.primary)
+                                    if display.1 {
+                                        Text("推薦").font(.caption2.weight(.bold)).foregroundStyle(.orange)
+                                    }
+                                }
+                                if let description {
+                                    Text(description).font(.caption).foregroundStyle(Color.secondary)
+                                }
+                            }
+                            // 看起來要像按鈕不像連結：淡底圓角，左邊對齊上面的文字（狀態圓點 32＋間距 12）
+                            .multilineTextAlignment(.leading)
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .opacity(answering ? 0.5 : 1)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.borderless)
+                        .padding(.leading, 44)
+                        .disabled(answering)
+                        .accessibilityLabel([display.0, display.1 ? String(localized: "推薦") : nil, description]
+                            .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: String(localized: "，")))
+                        .accessibilityIdentifier("quick-\(s.id)-\(option.key)")
+                    }
+                } else {
+                    NavigationLink(value: s.id) { Text("點進去回答").font(.callout) }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var summary: some View {
         let name = SessionName(s.name)
         HStack(alignment: .top, spacing: 12) {
             StatusBadge(status: s.status)
@@ -278,6 +380,7 @@ struct SessionRow: View {
     }
 
     private var preview: (text: String, color: Color)? {
+        if s.status == "waiting", let p = presentation { return (p.words.title, .orange) }
         if s.status == "waiting", let p = s.pending { return (p.headline, .orange) }
         if s.status == "working", !s.activity.isEmpty { return (s.activity, .secondary) }
         if s.status == "background", let bg = s.background, let first = bg.first {

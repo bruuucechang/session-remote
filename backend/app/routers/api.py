@@ -113,6 +113,7 @@ def star(sid: str, body: Star):
 
 
 class Settings(BaseModel):
+    done_push: bool | None = None
     star_only_push: bool | None = None
 
 
@@ -123,7 +124,7 @@ def get_settings():
 
 @router.post("/settings")
 def set_settings(body: Settings):
-    return notify.update_settings(star_only_push=body.star_only_push)
+    return notify.update_settings(done_push=body.done_push, star_only_push=body.star_only_push)
 
 
 @router.get("/quota")

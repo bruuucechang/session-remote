@@ -63,33 +63,26 @@ struct SessionsLiveActivity: Widget {
                 .widgetURL(URL(string: "sessionremote://open"))
         } dynamicIsland: { ctx in
             let s = ctx.state
-            // 沒有等你、沒有工作中，只剩背景在跑時，小島顯示背景數（不然寫 0 看起來像都停了）
-            let (n, icon, tint): (Int, String, Color) =
-                s.waiting > 0 ? (s.waiting, "questionmark.bubble.fill", .orange)
-                : s.working > 0 || s.background == 0 ? (s.working, "terminal.fill", .blue)
-                : (s.background, "hourglass", .purple)
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    HStack(spacing: 10) {
-                        Label("\(s.working)", systemImage: "ellipsis.circle.fill").foregroundStyle(.blue)
-                        if s.background > 0 {
-                            Label("\(s.background)", systemImage: "hourglass").foregroundStyle(.purple)
-                        }
-                    }
-                    .font(.headline)
-                }
-                DynamicIslandExpandedRegion(.trailing) {
-                    Label("\(s.waiting)", systemImage: "questionmark.bubble.fill").foregroundStyle(.orange).font(.headline)
+                    Label("等你 \(s.waiting)", systemImage: "questionmark.bubble.fill")
+                        .foregroundStyle(.orange).font(.headline).monospacedDigit()
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     Text(s.headline).font(.callout).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
                 }
             } compactLeading: {
-                Image(systemName: icon).foregroundStyle(tint)
+                Image(systemName: "questionmark.bubble.fill").foregroundStyle(.orange)
+                    .frame(minWidth: 28, alignment: .leading)
             } compactTrailing: {
-                Text("\(n)").foregroundStyle(tint).monospacedDigit()
+                Text("\(s.waiting)").foregroundStyle(.orange).monospacedDigit()
+                    .frame(minWidth: 28, alignment: .trailing)
             } minimal: {
-                Text("\(n)").foregroundStyle(tint)
+                HStack(spacing: 2) {
+                    Image(systemName: "questionmark.bubble.fill")
+                    Text("\(s.waiting)")
+                }
+                .font(.caption2).foregroundStyle(.orange).monospacedDigit()
             }
             .widgetURL(URL(string: "sessionremote://open"))
         }

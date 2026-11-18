@@ -762,6 +762,16 @@
         }
       }
     },
+    "完工也推播": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notify When Done"
+          }
+        }
+      }
+    },
     "完工只推標星號的": {
       "localizations": {
         "en": {
@@ -1612,6 +1622,16 @@
         }
       }
     },
+    "等你回答時一律推播；完工通知可以另外開啟。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Always notify when a session needs your answer. You can also enable completion notifications."
+          }
+        }
+      }
+    },
     "等筆電回應逾時": {
       "localizations": {
         "en": {
@@ -1919,6 +1939,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Send"
+          }
+        }
+      }
+    },
+    "送出中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sending"
           }
         }
       }
@@ -2259,6 +2289,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Show Terminal View"
+          }
+        }
+      }
+    },
+    "點進去回答": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open to Answer"
           }
         }
       }
