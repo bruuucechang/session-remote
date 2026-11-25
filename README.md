@@ -4,13 +4,13 @@
 
 ## 最近更新
 <!-- readme:recent 自動產生，不要手改 -->
+- [2026-11-25](docs/worklog/2026-11-25.md)：docs(readme): 更新最近更新
 - [2026-11-24](docs/worklog/2026-11-24.md)：docs(readme): 更新最近更新
 - [2026-11-23](docs/worklog/2026-11-23.md)：docs(readme): 更新最近更新
 - [2026-11-22](docs/worklog/2026-11-22.md)：docs(readme): 更新最近更新
 - [2026-11-21](docs/worklog/2026-11-21.md)：docs(readme): 更新最近更新
 - [2026-11-20](docs/worklog/2026-11-20.md)：docs(readme): 更新最近更新
 - [2026-11-19](docs/worklog/2026-11-19.md)：docs(readme): 更新最近更新；docs(readme): 重寫說明與架構
-- [2026-11-18](docs/worklog/2026-11-18.md)：改善手機送出訊息的體驗：按下就清空輸入框、收起鍵盤並顯示「送出中」，失敗時會還原文字；動態島與鎖定畫面只在有工作階段等待回答時顯示，沒人等待就立即消失
 <!-- /readme:recent -->
 
 ## 這是什麼
